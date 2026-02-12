@@ -106,6 +106,12 @@ from agent_governance.integrations import GovernanceADKMiddleware
 # Create middleware from governance.yaml
 governance = GovernanceADKMiddleware.from_config("governance.yaml")
 
+# Optional: override guardrails policy file
+# governance = GovernanceADKMiddleware.from_config(
+#   "governance.yaml",
+#   guardrails_path="/path/to/custom-guardrails.yaml",
+# )
+
 # Example usage inside an ADK agent loop
 async def handle_request(user_input: str, user_id: str):
   processed_input, ctx, start_time = await governance.before_agent_call(

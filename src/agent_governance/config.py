@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from importlib import resources
+
 import yaml
 from pydantic import BaseModel, Field
 
@@ -42,52 +44,11 @@ def _apply_env_overrides(data: Dict[str, Any], prefix: str) -> Dict[str, Any]:
 
 
 def _default_guardrails_policy() -> Dict[str, Any]:
-    return {
-        "name": "strict-production-guardrails",
-        "version": "2026-02-11",
-        "input_guardrails": [
-            {"type": "prompt_injection", "threshold": 0.8, "action": "block"},
-            {
-                "type": "pii_redaction",
-                "entities": ["EMAIL_ADDRESS", "CREDIT_CARD", "SSN", "PHONE_NUMBER"],
-                "action": "redact",
-            },
-            {
-                "type": "topic_filter",
-                "disallowed_topics": [
-                    "illegal_acts",
-                    "sexual_content",
-                    "competitor_data",
-                    "PII_extraction",
-                ],
-                "action": "block",
-            },
-        ],
-        "output_guardrails": [
-            {"type": "grounding_check", "threshold": 0.95, "action": "block"},
-            {"type": "content_safety", "severity": "high", "action": "block"},
-            {
-                "type": "pii_redaction",
-                "entities": ["EMAIL_ADDRESS", "CREDIT_CARD", "SSN"],
-                "action": "redact",
-            },
-        ],
-        "action_guardrails": [
-            {
-                "type": "tool_authorization",
-                "allowed_tools": ["search_internal_kb", "read_read_only_db"],
-                "disallowed_tools": ["execute_shell", "delete_file", "write_to_prod_db"],
-                "action": "restrict",
-            },
-            {
-                "type": "approval_gate",
-                "actions": ["email_user", "update_customer_record"],
-                "action": "require_approval",
-            },
-        ],
-        "logging": {"enabled": True, "log_level": "DEBUG"},
-        "rate_limits": {"max_requests_per_minute": 10, "max_tokens_per_minute": 5000},
-    }
+    try:
+        text = resources.files("agent_governance.guardrails").joinpath("default_guardrails.yaml").read_text()
+        return yaml.safe_load(text) or {}
+    except Exception:
+        return {}
 
 
 def _normalize_guardrails_policy(policy: Dict[str, Any]) -> Dict[str, Any]:
@@ -198,7 +159,11 @@ def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any
     return base
 
 
-def load_config(path: Optional[str | Path] = None, env_prefix: str = ENV_PREFIX) -> GovernanceConfig:
+def load_config(
+    path: Optional[str | Path] = None,
+    env_prefix: str = ENV_PREFIX,
+    guardrails_path: Optional[str | Path] = None,
+) -> GovernanceConfig:
     config_path = Path(path or os.getenv("GOVERNANCE_CONFIG_PATH") or DEFAULT_CONFIG_PATH)
     if not config_path.exists():
         raise ConfigError(f"Config file not found: {config_path}")
@@ -220,7 +185,7 @@ def load_config(path: Optional[str | Path] = None, env_prefix: str = ENV_PREFIX)
         data["guardrails"] = _normalize_guardrails_policy(data["guardrails"])
 
     guardrails_cfg = data.get("guardrails") or {}
-    policy_file = guardrails_cfg.get("policy_file") or guardrails_cfg.get("policy_path")
+    policy_file = guardrails_path or guardrails_cfg.get("policy_file") or guardrails_cfg.get("policy_path")
     if policy_file:
         policy_path = Path(policy_file)
         policy_data = yaml.safe_load(policy_path.read_text()) or {}

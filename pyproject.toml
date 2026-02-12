@@ -39,5 +39,8 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+agent_governance = ["guardrails/*.yaml"]
+
 [tool.pytest.ini_options]
 addopts = "-q"

@@ -11,6 +11,16 @@ DEFAULT_PATTERNS = {
     "EMAIL_ADDRESS": re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),
     "PHONE_NUMBER": re.compile(r"\b\+?\d{1,3}?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"),
     "US_SSN": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
+    "CREDIT_CARD_NUMBER": re.compile(r"\b(?:\d[ -]*?){13,19}\b"),
+    "PERSON_NAME": re.compile(r"\b[A-Z][a-z]+\s+[A-Z][a-z]+\b"),
+    "ADDRESS": re.compile(r"\b\d{1,5}\s+\w+(?:\s+\w+)*\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Lane|Ln|Dr|Drive|Ct|Court)\b", re.IGNORECASE),
+}
+
+INFO_TYPE_ALIASES = {
+    "SSN": "US_SSN",
+    "CREDIT_CARD": "CREDIT_CARD_NUMBER",
+    "NAME": "PERSON_NAME",
+    "PERSONAL_ADDRESS": "ADDRESS",
 }
 
 
@@ -28,11 +38,12 @@ class DLPScanner:
     def scan_text(self, text: str) -> DLPScanResult:
         findings: List[DLPFinding] = []
         for info_type in self.info_types:
-            pattern = DEFAULT_PATTERNS.get(info_type)
+            normalized = INFO_TYPE_ALIASES.get(info_type, info_type)
+            pattern = DEFAULT_PATTERNS.get(normalized)
             if not pattern:
                 continue
             for match in pattern.findall(text):
-                findings.append(DLPFinding(info_type=info_type, quote=match, likelihood="possible"))
+                findings.append(DLPFinding(info_type=normalized, quote=match, likelihood="possible"))
 
         if not findings:
             return DLPScanResult(action=self.action, findings=[])
@@ -47,6 +58,9 @@ class DLPScanner:
         scan.action = action
         if action == DLPAction.BLOCK:
             return text, scan
-        if action == DLPAction.REDACT and scan.redacted_text is not None:
-            return scan.redacted_text, scan
+        if action == DLPAction.REDACT:
+            if scan.redacted_text is None and scan.findings:
+                scan.redacted_text = redact_text(text, scan.findings)
+            if scan.redacted_text is not None:
+                return scan.redacted_text, scan
         return text, scan

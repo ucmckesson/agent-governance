@@ -37,8 +37,12 @@ class GovernanceADKMiddleware:
         return self._config.agent
 
     @classmethod
-    def from_config(cls, config_path: str | None = None) -> "GovernanceADKMiddleware":
-        return cls(load_config(config_path))
+    def from_config(
+        cls,
+        config_path: str | None = None,
+        guardrails_path: str | None = None,
+    ) -> "GovernanceADKMiddleware":
+        return cls(load_config(config_path, guardrails_path=guardrails_path))
 
     async def before_agent_call(
         self, agent_identity, user_input: str, user_id: str | None = None, session_id: str | None = None
