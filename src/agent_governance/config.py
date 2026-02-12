@@ -54,8 +54,17 @@ def _coerce_value(value: str) -> Any:
         return value
 
 
+def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(base.get(key), dict):
+            base[key] = _deep_merge(base[key], value)
+        else:
+            base[key] = value
+    return base
+
+
 def load_config(path: Optional[str | Path] = None, env_prefix: str = ENV_PREFIX) -> GovernanceConfig:
-    config_path = Path(path or DEFAULT_CONFIG_PATH)
+    config_path = Path(path or os.getenv("GOVERNANCE_CONFIG_PATH") or DEFAULT_CONFIG_PATH)
     if not config_path.exists():
         raise ConfigError(f"Config file not found: {config_path}")
 
@@ -68,6 +77,13 @@ def load_config(path: Optional[str | Path] = None, env_prefix: str = ENV_PREFIX)
         raise ConfigError("governance.yaml must be a YAML mapping")
 
     data = _apply_env_overrides(raw_data, env_prefix)
+
+    guardrails_cfg = data.get("guardrails") or {}
+    policy_file = guardrails_cfg.get("policy_file") or guardrails_cfg.get("policy_path")
+    if policy_file:
+        policy_path = Path(policy_file)
+        policy_data = yaml.safe_load(policy_path.read_text()) or {}
+        data["guardrails"] = _deep_merge(guardrails_cfg, policy_data)
 
     try:
         model = GovernanceConfigModel.model_validate(data)

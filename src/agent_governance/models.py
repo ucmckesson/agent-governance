@@ -124,6 +124,7 @@ class BaseEvent(BaseModel):
 
 class GuardrailResult(BaseModel):
     action: GuardrailAction
+    rule_name: str = ""
     reason: str
     details: Dict[str, Any] = Field(default_factory=dict)
 

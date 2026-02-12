@@ -19,6 +19,12 @@ class DLPScanner:
         self.action = action
         self.info_types = list(info_types or DEFAULT_PATTERNS.keys())
 
+    @classmethod
+    def from_config(cls, config: Dict[str, object]) -> "DLPScanner":
+        action = DLPAction(config.get("action_on_input_pii", "log"))
+        info_types = config.get("info_types") or list(DEFAULT_PATTERNS.keys())
+        return cls(action=action, info_types=info_types)
+
     def scan_text(self, text: str) -> DLPScanResult:
         findings: List[DLPFinding] = []
         for info_type in self.info_types:
@@ -35,3 +41,12 @@ class DLPScanner:
             redacted = redact_text(text, findings)
             return DLPScanResult(action=self.action, findings=findings, redacted_text=redacted)
         return DLPScanResult(action=self.action, findings=findings)
+
+    def scan_and_process(self, text: str, action: DLPAction) -> tuple[str, DLPScanResult]:
+        scan = self.scan_text(text)
+        scan.action = action
+        if action == DLPAction.BLOCK:
+            return text, scan
+        if action == DLPAction.REDACT and scan.redacted_text is not None:
+            return scan.redacted_text, scan
+        return text, scan

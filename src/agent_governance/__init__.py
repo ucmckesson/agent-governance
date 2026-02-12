@@ -11,6 +11,7 @@ from .eval import EvalHarness
 from .compliance import ComplianceChecker
 from .labels import LabelGenerator, LabelValidator
 from .golden_data import GoldenDataset
+from .integrations import GovernanceADKMiddleware
 
 __all__ = [
     "__version__",
@@ -28,4 +29,5 @@ __all__ = [
     "LabelGenerator",
     "LabelValidator",
     "GoldenDataset",
+    "GovernanceADKMiddleware",
 ]

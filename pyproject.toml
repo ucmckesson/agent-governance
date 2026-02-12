@@ -20,6 +20,7 @@ dependencies = [
   "PyYAML>=6.0",
   "httpx>=0.25",
   "tenacity>=8.2",
+  "jsonschema>=4.21",
 ]
 
 [project.optional-dependencies]

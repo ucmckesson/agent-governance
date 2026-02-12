@@ -9,3 +9,6 @@ telemetry:
   enabled: true
   redaction_keys: ["authorization", "token"]
   buffer_size: 50
+guardrails:
+  policy_file: "guardrails.yaml"
+  model_schema_file: "model_schema.yaml"

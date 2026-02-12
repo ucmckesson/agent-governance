@@ -28,3 +28,15 @@ class EvalError(GovernanceError):
 
 class ComplianceError(GovernanceError):
     """Compliance checking errors."""
+
+
+class InputBlockedError(GovernanceError):
+    """User input was blocked by guardrails."""
+
+
+class ToolBlockedError(GovernanceError):
+    """Tool call was blocked by guardrails."""
+
+
+class OutputBlockedError(GovernanceError):
+    """Agent output was blocked by guardrails."""

@@ -20,13 +20,28 @@ properties:
     type: object
     properties:
       enabled: { type: boolean, default: true }
+      log_level: { type: string }
       redaction_keys:
         type: array
         items: { type: string }
-      buffer_size: { type: integer, minimum: 1, default: 1000 }
+      redact_fields:
+        type: array
+        items: { type: string }
+      custom_fields:
+        type: object
+        additionalProperties: true
+      buffer:
+        type: object
+        properties:
+          enabled: { type: boolean, default: false }
+          max_size: { type: integer, minimum: 1, default: 1000 }
+          flush_interval_seconds: { type: integer, minimum: 1, default: 5 }
   guardrails:
     type: object
     properties:
+      policy_file: { type: string }
+      policy_path: { type: string }
+      model_schema_file: { type: string }
       tool_allowlist:
         type: array
         items: { type: string }
@@ -39,6 +54,16 @@ properties:
       content_blocklist:
         type: array
         items: { type: string }
+      tools:
+        type: object
+      input_validation:
+        type: object
+      output_validation:
+        type: object
+      rate_limiting:
+        type: object
+      content_safety:
+        type: object
   dlp:
     type: object
     properties:

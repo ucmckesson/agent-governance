@@ -17,6 +17,21 @@ guardrails = GuardrailsEngine(cfg.section("guardrails"))
 dlp = DLPScanner()
 ```
 
+## ADK integration
+
+```python
+from agent_governance.integrations import GovernanceADKMiddleware
+
+governance = GovernanceADKMiddleware.from_config("governance.yaml")
+```
+
+## Guardrails policy & model schema
+
+You can reference team-specific YAML files from governance.yaml:
+
+- guardrails.policy_file
+- guardrails.model_schema_file
+
 ## Package layout
 
 - `agent_governance.config` — configuration loader

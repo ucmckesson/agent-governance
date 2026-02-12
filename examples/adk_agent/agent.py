@@ -1,28 +1,24 @@
-from agent_governance import GuardrailsEngine, DLPScanner, init_telemetry, load_config
-from agent_governance.models import DLPAction, EventType, RequestContext
-from agent_governance.telemetry.events import build_event
+from agent_governance.integrations import GovernanceADKMiddleware
 
 
-def main():
-    cfg = load_config("governance.yaml")
-    logger = init_telemetry(cfg.section("telemetry"))
-    guardrails = GuardrailsEngine(cfg.section("guardrails"))
-    dlp = DLPScanner(action=DLPAction.REDACT)
+async def main():
+    governance = GovernanceADKMiddleware.from_config("governance.yaml")
+    agent_identity = governance.agent
 
-    # Example tool call validation
-    result = guardrails.validate_tool_call("search", {"query": "hello"}, rate_key="user-1")
-    logger.emit_event(
-        build_event(
-            EventType.GUARDRAIL_EVENT,
-            cfg.agent,
-            RequestContext(),
-            {"result": result.model_dump()},
-        )
+    user_input, ctx, start_time = await governance.before_agent_call(
+        agent_identity, "hello", user_id="user-1", session_id="session-1"
     )
 
-    scan = dlp.scan_text("email me at test@example.com")
-    print(scan.model_dump())
+    # Simulate tool call
+    tool_params = await governance.before_tool_call(agent_identity, ctx, "search", {"query": "hello"})
+    tool_result = {"results": ["ok"]}
+    await governance.after_tool_call(agent_identity, ctx, "search", tool_result, latency_ms=10, success=True)
+
+    output = await governance.after_agent_call(agent_identity, ctx, user_input, start_time)
+    print(output)
 
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+
+    asyncio.run(main())

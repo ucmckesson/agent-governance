@@ -1,14 +1,20 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Dict
+
+from ..models import GuardrailAction, GuardrailResult
 
 
 class OutputValidator:
-    def __init__(self, max_length: int = 20000) -> None:
-        self.max_length = max_length
+    def __init__(self, config: Dict[str, object]) -> None:
+        cfg = config.get("output_validation", {})
+        self.max_length = int(cfg.get("max_output_length", 50000))
 
-    def validate(self, output: Dict[str, Any]) -> tuple[bool, str]:
-        text = str(output)
-        if len(text) > self.max_length:
-            return False, "output_too_large"
-        return True, "ok"
+    def validate_length(self, output_text: str) -> GuardrailResult:
+        if len(output_text) > self.max_length:
+            return GuardrailResult(
+                action=GuardrailAction.BLOCK,
+                rule_name="max_output_length",
+                reason="Output exceeds max length",
+            )
+        return GuardrailResult(action=GuardrailAction.ALLOW, rule_name="output_length_ok", reason="OK")
