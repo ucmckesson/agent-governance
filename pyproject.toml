@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-governance-sdk"
+version = "0.1.0"
+description = "SDK for governance, telemetry, guardrails, and compliance for AI agents."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+authors = [{ name = "Agent Governance Team" }]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+  "pydantic>=2.5",
+  "PyYAML>=6.0",
+  "httpx>=0.25",
+  "tenacity>=8.2",
+]
+
+[project.optional-dependencies]
+telemetry = [
+  "opentelemetry-api>=1.22",
+]
+
+test = [
+  "pytest>=7.4",
+  "pytest-asyncio>=0.23",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"

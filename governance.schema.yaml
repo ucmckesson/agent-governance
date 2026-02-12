@@ -1,0 +1,74 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$type: object
+title: GovernanceConfig
+required:
+  - agent
+properties:
+  agent:
+    type: object
+    required: [agent_id, agent_name, agent_type, version, env, gcp_project]
+    properties:
+      agent_id: { type: string }
+      agent_name: { type: string }
+      agent_type: { type: string, enum: [adk, agent_builder, vertex_endpoint, custom] }
+      version: { type: string }
+      env: { type: string, enum: [dev, staging, prod] }
+      gcp_project: { type: string }
+      region: { type: string }
+      service_account: { type: [string, "null"] }
+  telemetry:
+    type: object
+    properties:
+      enabled: { type: boolean, default: true }
+      redaction_keys:
+        type: array
+        items: { type: string }
+      buffer_size: { type: integer, minimum: 1, default: 1000 }
+  guardrails:
+    type: object
+    properties:
+      tool_allowlist:
+        type: array
+        items: { type: string }
+      tool_denylist:
+        type: array
+        items: { type: string }
+      max_calls_per_minute:
+        type: integer
+        minimum: 1
+      content_blocklist:
+        type: array
+        items: { type: string }
+  dlp:
+    type: object
+    properties:
+      enabled: { type: boolean, default: true }
+      action: { type: string, enum: [block, redact, log] }
+      info_types:
+        type: array
+        items: { type: string }
+  registry:
+    type: object
+    properties:
+      base_url: { type: string }
+      timeout_s: { type: number, minimum: 0 }
+  eval:
+    type: object
+    properties:
+      enabled: { type: boolean, default: true }
+      thresholds:
+        type: object
+  compliance:
+    type: object
+    properties:
+      enabled: { type: boolean, default: true }
+  labels:
+    type: object
+    properties:
+      required:
+        type: array
+        items: { type: string }
+  golden_data:
+    type: object
+    properties:
+      source: { type: string }
