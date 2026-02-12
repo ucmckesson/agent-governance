@@ -1,0 +1,8 @@
+# Install from GitHub with a tag or commit
+# git+https://github.com/ucmckesson/agent-governance.git@v0.1.1
+
+pydantic>=2.5
+PyYAML>=6.0
+httpx>=0.25
+tenacity>=8.2
+jsonschema>=4.21

@@ -1,69 +1,72 @@
-# ADK User Guide
-
-This guide shows how to integrate the SDK while building agents with Google ADK. It focuses on end-to-end telemetry and guardrails, with team-customizable YAML files.
-
-## 1) Add governance.yaml
-
-Create a governance.yaml at your agent repo root. Point guardrails and model schema to team-owned YAML files.
+### guardrails example (default)
 
 ```yaml
-agent:
-  agent_id: "customer-service-v2"
-  agent_name: "Customer Service Agent v2"
-  agent_type: "adk"
-  version: "0.1.0"
-  env: "dev"
-  gcp_project: "my-project"
+# Strict Agent Guardrails Configuration
+# Focus: Security, PII, Harmful Content, Hallucination, and Action Control
 
-telemetry:
+name: strict-production-guardrails
+version: "2026-02-11"
+
+# --- INPUT GUARDRAILS (Before prompt hits the LLM) ---
+input_guardrails:
+  # 1. Detect prompt injections and jailbreaks
+  - type: prompt_injection
+    threshold: 0.8
+    action: block
+  
+  # 2. Prevent PII leakage in user inputs (email, SSN, credit cards)
+  - type: pii_redaction
+    entities: ["EMAIL_ADDRESS", "CREDIT_CARD", "SSN", "PHONE_NUMBER"]
+    action: redact
+    
+  # 3. Topic/Keyword filtering (Strict deny-list)
+  - type: topic_filter
+    disallowed_topics:
+      - illegal_acts
+      - sexual_content
+      - competitor_data
+      - PII_extraction
+    action: block
+
+# --- OUTPUT GUARDRAILS (After LLM response, before user sees it) ---
+output_guardrails:
+  # 1. Hallucination detection
+  - type: grounding_check
+    threshold: 0.95 # Require high confidence
+    action: block
+    
+  # 2. Content moderation (Hate speech, bias, violence)
+  - type: content_safety
+    severity: high
+    action: block
+    
+  # 3. Final PII check
+  - type: pii_redaction
+    entities: ["EMAIL_ADDRESS", "CREDIT_CARD", "SSN"]
+    action: redact
+
+# --- TOOL/ACTION GUARDRAILS (Before agent executes commands) ---
+action_guardrails:
+  # 1. Least-privilege access for tools
+  - type: tool_authorization
+    allowed_tools: ["search_internal_kb", "read_read_only_db"]
+    disallowed_tools: ["execute_shell", "delete_file", "write_to_prod_db"]
+    action: restrict
+    
+  # 2. Human-in-the-loop (HITL) for high-impact actions
+  - type: approval_gate
+    actions: ["email_user", "update_customer_record"]
+    action: require_approval
+
+# --- MONITORING & LOGGING ---
+logging:
   enabled: true
-  log_level: "INFO"
-  redact_fields: ["token", "authorization", "secret"]
-  custom_fields:
-    team: "cx"
-    product: "support"
-
-guardrails:
-  policy_file: "guardrails.yaml"
-  model_schema_file: "model_schema.yaml"
-
-dlp:
-  enabled: true
-  scan_input: true
-  scan_output: true
-  action_on_input_pii: "redact"
-  action_on_output_pii: "redact"
-```
-
-## 2) Add guardrails.yaml
-
-Each team can customize this file without changing code.
-
-```yaml
-enabled: true
-tools:
-  default_policy:
-    allowed: false
-  policies:
-    - tool_name: "crm_search"
-      allowed: true
-      max_calls_per_request: 3
-    - tool_name: "send_email"
-      allowed: true
-      requires_confirmation: true
-input_validation:
-  max_input_length: 10000
-  max_input_tokens: 4096
-  block_known_injection_patterns: true
-output_validation:
-  max_output_length: 50000
-rate_limiting:
-  enabled: true
-  requests_per_minute_per_user: 30
-  requests_per_minute_global: 500
-content_safety:
-  enabled: true
-  block_categories: ["violence", "hate_speech"]
+  log_level: DEBUG # Log all input/output for audit trails
+  
+# --- RATE LIMITING ---
+rate_limits:
+  max_requests_per_minute: 10
+  max_tokens_per_minute: 5000
 ```
 
 ## 3) Add model_schema.yaml
@@ -133,9 +136,10 @@ result = {"status": "ok"}
 await governance.after_tool_call(
   governance.agent, ctx, "crm_search", result, latency_ms=12, success=True
 )
-+```
+```
 
 ## Notes
 
 - Telemetry fails open. Guardrails fail closed.
+- This strict guardrails policy is the SDK default when guardrails are omitted.
 - If you need team-specific policies, update guardrails.yaml and model_schema.yaml only.

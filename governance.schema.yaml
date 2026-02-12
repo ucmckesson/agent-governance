@@ -42,6 +42,21 @@ properties:
       policy_file: { type: string }
       policy_path: { type: string }
       model_schema_file: { type: string }
+      name: { type: string }
+      version: { type: string }
+      input_guardrails:
+        type: array
+        items: { type: object }
+      output_guardrails:
+        type: array
+        items: { type: object }
+      action_guardrails:
+        type: array
+        items: { type: object }
+      rate_limits:
+        type: object
+      logging:
+        type: object
       tool_allowlist:
         type: array
         items: { type: string }
@@ -77,6 +92,14 @@ properties:
     properties:
       base_url: { type: string }
       timeout_s: { type: number, minimum: 0 }
+      registration_schema:
+        type: array
+        items:
+          type: object
+          properties:
+            name: { type: string }
+            type: { type: string }
+            mode: { type: string }
   eval:
     type: object
     properties:

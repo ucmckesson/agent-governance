@@ -6,7 +6,7 @@ from .models import AgentIdentity, RequestContext
 from .telemetry import GovernanceLogger, init_telemetry
 from .guardrails import GuardrailsEngine
 from .dlp import DLPScanner
-from .registry import RegistryClient
+from .registry import AgentRegistrationRecord, RegistryClient
 from .eval import EvalHarness
 from .compliance import ComplianceChecker
 from .labels import LabelGenerator, LabelValidator
@@ -24,6 +24,7 @@ __all__ = [
     "GuardrailsEngine",
     "DLPScanner",
     "RegistryClient",
+    "AgentRegistrationRecord",
     "EvalHarness",
     "ComplianceChecker",
     "LabelGenerator",
