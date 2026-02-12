@@ -32,6 +32,10 @@ You can reference team-specific YAML files from governance.yaml:
 - guardrails.policy_file
 - guardrails.model_schema_file
 
+## Guides
+
+- See [docs/ADK_USER_GUIDE.md](docs/ADK_USER_GUIDE.md)
+
 ## Package layout
 
 - `agent_governance.config` — configuration loader
