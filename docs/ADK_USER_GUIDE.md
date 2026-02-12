@@ -98,6 +98,24 @@ tool_params:
       required: ["query"]
 ```
 
+## 3b) Telemetry to Cloud Logging
+
+Add this to governance.yaml to send logs to Google Cloud Logging:
+
+```yaml
+telemetry:
+  enabled: true
+  log_level: "INFO"
+  redact_fields: ["token", "authorization", "secret"]
+  cloud_logging:
+    enabled: true
+    project: "my-gcp-project"
+    log_name: "agent-governance"
+    labels:
+      service: "my-agent"
+    also_stdout: true
+```
+
 ## 4) Wire into ADK
 
 ```python

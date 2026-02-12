@@ -9,6 +9,7 @@ from ..exceptions import TelemetryError
 from ..models import BaseEvent, EventType, RequestContext
 from .buffered_emitter import BufferedEmitter
 from .events import build_event
+from .cloud_logging import enable_cloud_logging
 from .redaction import redact_fields
 
 
@@ -114,9 +115,13 @@ def init_telemetry(config: Dict[str, Any]) -> GovernanceLogger:
     log_level = config.get("log_level", "INFO")
     buffer_cfg = config.get("buffer", {})
     buffer_size = int(buffer_cfg.get("max_size", config.get("buffer_size", 0)))
-    return GovernanceLogger(
+    logger = GovernanceLogger(
         redaction_keys=redaction_keys,
         buffer_size=buffer_size if buffer_cfg.get("enabled", bool(buffer_size)) else 0,
         custom_fields=custom_fields,
         log_level=log_level,
     )
+    cloud_cfg = config.get("cloud_logging", {})
+    if cloud_cfg.get("enabled"):
+        enable_cloud_logging(logger._logger, cloud_cfg)
+    return logger

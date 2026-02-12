@@ -36,6 +36,16 @@ properties:
           enabled: { type: boolean, default: false }
           max_size: { type: integer, minimum: 1, default: 1000 }
           flush_interval_seconds: { type: integer, minimum: 1, default: 5 }
+      cloud_logging:
+        type: object
+        properties:
+          enabled: { type: boolean, default: false }
+          project: { type: string }
+          log_name: { type: string }
+          labels:
+            type: object
+            additionalProperties: true
+          also_stdout: { type: boolean, default: true }
   guardrails:
     type: object
     properties:

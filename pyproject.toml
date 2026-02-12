@@ -26,6 +26,7 @@ dependencies = [
 [project.optional-dependencies]
 telemetry = [
   "opentelemetry-api>=1.22",
+  "google-cloud-logging>=3.9",
 ]
 
 test = [
