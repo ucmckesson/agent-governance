@@ -2,6 +2,13 @@
 
 SDK for implementing standard guardrails, data models for custom logging and evals for agents.
 
+## Installation
+
+- From GitHub (tagged release):
+	- git+https://github.com/ucmckesson/agent-governance.git@v0.1.1
+- Local development (from repo root):
+	- pip install -e .
+
 ## Quick start
 
 1) Create a governance.yaml at your repo root.
