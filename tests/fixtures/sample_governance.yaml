@@ -1,0 +1,11 @@
+agent:
+  agent_id: sample-agent
+  agent_name: Sample Agent
+  agent_type: custom
+  version: "0.1.0"
+  env: dev
+  gcp_project: sample-project
+telemetry:
+  enabled: true
+  redaction_keys: ["secret"]
+  buffer_size: 10

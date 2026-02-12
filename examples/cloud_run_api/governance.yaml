@@ -1,0 +1,10 @@
+agent:
+  agent_id: example-api
+  agent_name: Example Cloud Run API
+  agent_type: custom
+  version: "0.1.0"
+  env: dev
+  gcp_project: example-project
+telemetry:
+  enabled: true
+  buffer_size: 100

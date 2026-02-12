@@ -1,0 +1,2 @@
+{"prompt": "hello", "expected": "hi"}
+{"prompt": "bye", "expected": "goodbye"}

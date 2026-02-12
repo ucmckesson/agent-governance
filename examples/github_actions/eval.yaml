@@ -1,0 +1,13 @@
+name: Eval
+on:
+  workflow_dispatch:
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e .
+      - run: python -c "from agent_governance.eval import EvalHarness; print(EvalHarness().thresholds)"
