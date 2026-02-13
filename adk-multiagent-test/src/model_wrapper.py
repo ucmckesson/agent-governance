@@ -15,6 +15,16 @@ from .config import Settings, ensure_settings_valid, get_settings
 
 _AAD_TOKEN_CACHE: dict[str, float] | None = None
 
+_TYPE_MAP = {
+    "STRING": "string",
+    "OBJECT": "object",
+    "ARRAY": "array",
+    "NUMBER": "number",
+    "INTEGER": "integer",
+    "BOOLEAN": "boolean",
+    "NULL": "null",
+}
+
 
 def _get_access_token(settings: Settings) -> str:
     global _AAD_TOKEN_CACHE
@@ -98,7 +108,7 @@ class AzureOpenAILlm(BaseLlm):
         body: dict[str, Any] = {
             "model": deployment,
             "messages": messages,
-            "temperature": 0.2,
+            "temperature": 1,
         }
         if tools:
             body["tools"] = tools
@@ -119,7 +129,8 @@ class AzureOpenAILlm(BaseLlm):
             verify=False if settings.azure_openai_skip_verify else (settings.azure_openai_ca_bundle or True),
         )
         if not resp.ok:
-            resp.raise_for_status()
+            detail = resp.text
+            raise RuntimeError(f"Azure OpenAI error {resp.status_code}: {detail}")
         return resp.json()
 
     def _decorate_span(self, llm_request: LlmRequest, llm_response: LlmResponse, latency_ms: int) -> None:
@@ -238,6 +249,7 @@ class AzureOpenAILlm(BaseLlm):
 
 def _build_messages(llm_request: LlmRequest) -> list[dict[str, Any]]:
     messages: list[dict[str, Any]] = []
+    seen_tool_call_ids: set[str] = set()
     if llm_request.config and isinstance(llm_request.config.system_instruction, str):
         messages.append({"role": "system", "content": llm_request.config.system_instruction})
 
@@ -246,17 +258,49 @@ def _build_messages(llm_request: LlmRequest) -> list[dict[str, Any]]:
             continue
         role = "assistant" if content.role == "model" else "user"
         text_parts = [part.text for part in content.parts if part.text]
+
+        tool_calls_payload: list[dict[str, Any]] = []
+        for part in content.parts:
+            if part.function_call:
+                fc = part.function_call
+                tool_call_id = fc.id or f"toolcall-{int(time.time() * 1000)}"
+                seen_tool_call_ids.add(tool_call_id)
+                tool_calls_payload.append(
+                    {
+                        "id": tool_call_id,
+                        "type": "function",
+                        "function": {
+                            "name": fc.name,
+                            "arguments": json.dumps(fc.args or {}),
+                        },
+                    }
+                )
+
+        if tool_calls_payload:
+            messages.append({"role": "assistant", "content": None, "tool_calls": tool_calls_payload})
+
         for part in content.parts:
             if part.function_response:
                 response = part.function_response
-                tool_message = {
-                    "role": "tool",
-                    "tool_call_id": response.id,
-                    "content": json.dumps(response.response or {}),
-                }
-                if response.name:
-                    tool_message["name"] = response.name
-                messages.append(tool_message)
+                if response.id and response.id in seen_tool_call_ids:
+                    tool_message = {
+                        "role": "tool",
+                        "tool_call_id": response.id,
+                        "content": json.dumps(response.response or {}),
+                    }
+                    if response.name:
+                        tool_message["name"] = response.name
+                    messages.append(tool_message)
+                else:
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": (
+                                f"Tool result ({response.name or 'tool'}): "
+                                f"{json.dumps(response.response or {})}"
+                            ),
+                        }
+                    )
         if text_parts:
             messages.append({"role": role, "content": "\n".join(text_parts)})
 
@@ -276,17 +320,36 @@ def _build_tools(llm_request: LlmRequest) -> list[dict[str, Any]]:
                 schema = decl.parameters_json_schema
             elif decl.parameters:
                 schema = decl.parameters.model_dump(exclude_none=True, by_alias=True)
+            normalized_schema = _normalize_schema_for_azure(schema or {})
             tools.append(
                 {
                     "type": "function",
                     "function": {
                         "name": decl.name,
                         "description": decl.description or "",
-                        "parameters": schema or {},
+                        "parameters": normalized_schema,
                     },
                 }
             )
     return tools
+
+
+def _normalize_schema_for_azure(schema: Any) -> Any:
+    if isinstance(schema, dict):
+        normalized: dict[str, Any] = {}
+        for k, v in schema.items():
+            if k == "propertyOrdering":
+                continue
+            if k == "type" and isinstance(v, str):
+                normalized[k] = _TYPE_MAP.get(v, v.lower())
+            else:
+                normalized[k] = _normalize_schema_for_azure(v)
+        return normalized
+    if isinstance(schema, list):
+        return [_normalize_schema_for_azure(item) for item in schema]
+    if isinstance(schema, str) and schema in _TYPE_MAP:
+        return _TYPE_MAP[schema]
+    return schema
 
 
 def _get_last_user_text(llm_request: LlmRequest) -> str:
