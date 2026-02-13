@@ -9,6 +9,8 @@ from ..exceptions import InputBlockedError, OutputBlockedError, ToolBlockedError
 from ..guardrails.engine import GuardrailsEngine
 from ..models import DLPAction, GuardrailAction, RequestContext
 from ..telemetry import GovernanceLogger, init_telemetry
+from ..telemetry.tracing import init_tracing
+from ..telemetry.spans import start_span
 
 
 def attach_adk_hooks(logger: GovernanceLogger, agent_identity) -> Dict[str, Any]:
@@ -28,9 +30,12 @@ class GovernanceADKMiddleware:
     def __init__(self, config):
         self._config = config
         self._logger = init_telemetry(config.section("telemetry"))
+        init_tracing(config.agent, config.section("telemetry"))
         self._guardrails = GuardrailsEngine(config.section("guardrails"), self._logger)
         dlp_cfg = config.section("dlp")
         self._dlp = DLPScanner.from_config(dlp_cfg) if dlp_cfg.get("enabled", True) else None
+        self._active_spans = {}
+        self._tool_spans = {}
 
     @property
     def agent(self):
@@ -52,6 +57,9 @@ class GovernanceADKMiddleware:
             session_id=session_id,
         )
         start_time = time.monotonic()
+        span_ctx = start_span("agent_request", {"agent_id": agent_identity.agent_id})
+        span = span_ctx.__enter__()
+        self._active_spans[ctx.request_id] = (span_ctx, span)
         self._logger.agent_request_start(agent_identity, ctx, source="adk")
 
         guard = await self._guardrails.check_input(ctx, user_input, agent=agent_identity)
@@ -74,6 +82,10 @@ class GovernanceADKMiddleware:
             raise ToolBlockedError(f"Tool '{tool_name}' requires confirmation: {guard.reason}")
 
         self._logger.tool_call_start(agent_identity, ctx, tool_name)
+        tool_span_ctx = start_span("tool_call", {"tool_name": tool_name})
+        tool_span = tool_span_ctx.__enter__()
+        key = f"{ctx.request_id}:{tool_name}:{len(self._tool_spans)}"
+        self._tool_spans[key] = (tool_span_ctx, tool_span)
 
         if self._dlp and self._config.section("dlp").get("scan_tool_params", True):
             action = DLPAction(self._config.section("dlp").get("action_on_input_pii", "log"))
@@ -96,6 +108,12 @@ class GovernanceADKMiddleware:
         self._guardrails.record_tool_result(tool_name, success)
         status = "success" if success else "error"
         self._logger.tool_call_end(agent_identity, ctx, tool_name, status, latency_ms, error_message=error)
+        for key, (tool_span_ctx, tool_span) in list(self._tool_spans.items()):
+            if key.startswith(f"{ctx.request_id}:{tool_name}:"):
+                tool_span.set_attribute("status", status)
+                tool_span_ctx.__exit__(None, None, None)
+                self._tool_spans.pop(key, None)
+                break
         return result
 
     async def after_agent_call(
@@ -113,4 +131,8 @@ class GovernanceADKMiddleware:
 
         latency_ms = int((time.monotonic() - start_time) * 1000)
         self._logger.agent_request_end(agent_identity, ctx, status="success", latency_ms=latency_ms)
+        if ctx.request_id in self._active_spans:
+            span_ctx, span = self._active_spans.pop(ctx.request_id)
+            span.set_attribute("latency_ms", latency_ms)
+            span_ctx.__exit__(None, None, None)
         return output

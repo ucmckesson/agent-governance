@@ -46,6 +46,12 @@ properties:
             type: object
             additionalProperties: true
           also_stdout: { type: boolean, default: true }
+      tracing:
+        type: object
+        properties:
+          enabled: { type: boolean, default: false }
+          sample_rate: { type: number, minimum: 0, maximum: 1 }
+          dev_console: { type: boolean, default: false }
   guardrails:
     type: object
     properties:
@@ -102,6 +108,9 @@ properties:
     properties:
       base_url: { type: string }
       timeout_s: { type: number, minimum: 0 }
+      bq_project: { type: string }
+      bq_dataset: { type: string }
+      bq_table: { type: string }
       registration_schema:
         type: array
         items:

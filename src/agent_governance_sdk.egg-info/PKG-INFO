@@ -1,0 +1,90 @@
+Metadata-Version: 2.4
+Name: agent-governance-sdk
+Version: 0.1.1
+Summary: SDK for governance, telemetry, guardrails, and compliance for AI agents.
+Author: Agent Governance Team
+License: Proprietary
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: pydantic>=2.5
+Requires-Dist: PyYAML>=6.0
+Requires-Dist: httpx>=0.25
+Requires-Dist: tenacity>=8.2
+Requires-Dist: jsonschema>=4.21
+Requires-Dist: opentelemetry-api>=1.22
+Provides-Extra: telemetry
+Requires-Dist: google-cloud-logging>=3.9; extra == "telemetry"
+Provides-Extra: tracing
+Requires-Dist: opentelemetry-sdk>=1.22; extra == "tracing"
+Requires-Dist: opentelemetry-exporter-gcp-trace>=1.6; extra == "tracing"
+Requires-Dist: opentelemetry-propagator-gcp>=1.6; extra == "tracing"
+Requires-Dist: opentelemetry-instrumentation-httpx>=0.43b0; extra == "tracing"
+Requires-Dist: opentelemetry-semantic-conventions>=0.43b0; extra == "tracing"
+Provides-Extra: registry
+Requires-Dist: google-cloud-bigquery>=3.17; extra == "registry"
+Provides-Extra: test
+Requires-Dist: pytest>=7.4; extra == "test"
+Requires-Dist: pytest-asyncio>=0.23; extra == "test"
+
+# agent-governance-sdk
+
+SDK for implementing standard guardrails, data models for custom logging and evals for agents.
+
+## Installation
+
+- From GitHub (tagged release):
+	- git+https://github.com/ucmckesson/agent-governance.git@v0.1.1
+- Local development (from repo root):
+	- pip install -e .
+
+## Quick start
+
+1) Create a governance.yaml at your repo root.
+
+2) Initialize the SDK:
+
+```python
+from agent_governance import GuardrailsEngine, DLPScanner, init_telemetry, load_config
+
+cfg = load_config("governance.yaml")
+logger = init_telemetry(cfg.section("telemetry"))
+guardrails = GuardrailsEngine(cfg.section("guardrails"))
+dlp = DLPScanner()
+```
+
+## ADK integration
+
+```python
+from agent_governance.integrations import GovernanceADKMiddleware
+
+governance = GovernanceADKMiddleware.from_config("governance.yaml")
+```
+
+## Guardrails policy & model schema
+
+You can reference team-specific YAML files from governance.yaml:
+
+- guardrails.policy_file
+- guardrails.model_schema_file
+
+## Guides
+
+- See [docs/ADK_USER_GUIDE.md](docs/ADK_USER_GUIDE.md)
+
+## Package layout
+
+- `agent_governance.config` — configuration loader
+- `agent_governance.telemetry` — structured logging
+- `agent_governance.guardrails` — tool/input/output enforcement
+- `agent_governance.dlp` — PII scanning
+- `agent_governance.registry` — registry client
+- `agent_governance.eval` — eval harness
+- `agent_governance.compliance` — compliance checks
+- `agent_governance.labels` — label validation
+- `agent_governance.golden_data` — golden dataset utilities
+
+## Examples
+
+See [examples/](examples/) for ADK, Cloud Run, and GitHub Actions usage.

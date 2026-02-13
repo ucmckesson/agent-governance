@@ -109,9 +109,32 @@ class RequestContext(BaseModel):
     session_id: Optional[str] = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+    def model_post_init(self, __context) -> None:
+        if self.trace_id is None or self.span_id is None:
+            trace_id, span_id = _current_trace_context()
+            if self.trace_id is None:
+                self.trace_id = trace_id
+            if self.span_id is None:
+                self.span_id = span_id
+
     @staticmethod
     def hash_user_id(raw_user_id: str) -> str:
         return hashlib.sha256(raw_user_id.encode()).hexdigest()[:16]
+
+
+def _current_trace_context() -> tuple[Optional[str], Optional[str]]:
+    try:
+        from opentelemetry import trace  # type: ignore
+
+        span = trace.get_current_span()
+        ctx = span.get_span_context() if span else None
+        if ctx and ctx.is_valid:
+            trace_id = f"{ctx.trace_id:032x}"
+            span_id = f"{ctx.span_id:016x}"
+            return trace_id, span_id
+    except Exception:
+        pass
+    return None, None
 
 
 class BaseEvent(BaseModel):
