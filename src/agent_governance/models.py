@@ -70,6 +70,7 @@ class EventType(str, Enum):
     DLP_EVENT = "dlp_event"
     GUARDRAIL_EVENT = "guardrail_event"
     EVAL_EVENT = "eval_event"
+    REGISTRATION_EVENT = "registration_event"
     ERROR_EVENT = "error_event"
 
 

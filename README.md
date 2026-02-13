@@ -24,6 +24,21 @@ guardrails = GuardrailsEngine(cfg.section("guardrails"))
 dlp = DLPScanner()
 ```
 
+## Production bootstrap (recommended)
+
+```python
+from agent_governance import init_governance
+
+runtime = init_governance("governance.yaml")
+# runtime.logger, runtime.middleware, runtime.lifecycle are ready
+```
+
+This enables:
+- runtime detection (Cloud Run / Agent Engine / GKE)
+- auto registration event emission
+- heartbeat lifecycle events
+- telemetry initialization (Cloud Logging auto-on in GCP)
+
 ## ADK integration
 
 ```python

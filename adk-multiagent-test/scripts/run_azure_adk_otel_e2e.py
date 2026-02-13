@@ -22,6 +22,7 @@ from src.agents.orchestrator import build_orchestrator
 from src.telemetry.setup import setup_telemetry
 from src.telemetry.span_formatter import summarize_spans, spans_to_cloud_logging_entries
 
+from agent_governance import GovernanceRuntime, init_governance
 from agent_governance.integrations import GovernanceADKMiddleware
 from agent_governance.exceptions import InputBlockedError, OutputBlockedError
 
@@ -99,7 +100,7 @@ async def run_query(
     return last_text, transfer_targets
 
 
-def _build_governance_middleware() -> GovernanceADKMiddleware:
+def _build_governance_runtime() -> GovernanceRuntime:
         config_text = """
 agent:
     agent_id: "adk-multiagent-e2e"
@@ -132,11 +133,15 @@ dlp:
         - "EMAIL_ADDRESS"
         - "PHONE_NUMBER"
         - "SSN"
+
+registry:
+    heartbeat_interval_s: 300
 """
         with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as f:
                 f.write(config_text)
                 path = f.name
-        return GovernanceADKMiddleware.from_config(path)
+
+        return init_governance(path, auto_register=True, start_heartbeat=False)
 
 
 def print_summary(spans) -> None:
@@ -157,7 +162,8 @@ def write_cloud_logging_jsonl(spans) -> None:
 
 async def main() -> None:
     exporter = setup_telemetry(use_console=False)
-    governance = _build_governance_middleware()
+    governance_runtime = _build_governance_runtime()
+    governance = governance_runtime.middleware
 
     runner = InMemoryRunner(agent=build_orchestrator(), app_name="azure_adk_e2e")
     user_id = "azure-user"
@@ -182,6 +188,7 @@ async def main() -> None:
     spans = exporter.get_finished_spans()
     print_summary(spans)
     write_cloud_logging_jsonl(spans)
+    governance_runtime.lifecycle.mark_stopped()
 
 
 if __name__ == "__main__":

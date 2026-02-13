@@ -12,6 +12,8 @@ from .compliance import ComplianceChecker
 from .labels import LabelGenerator, LabelValidator
 from .golden_data import GoldenDataset
 from .integrations import GovernanceADKMiddleware
+from .bootstrap import init_governance, GovernanceRuntime
+from .runtime import RuntimeMetadata, detect_runtime
 
 __all__ = [
     "__version__",
@@ -31,4 +33,8 @@ __all__ = [
     "LabelValidator",
     "GoldenDataset",
     "GovernanceADKMiddleware",
+    "init_governance",
+    "GovernanceRuntime",
+    "RuntimeMetadata",
+    "detect_runtime",
 ]

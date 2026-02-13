@@ -1,15 +1,15 @@
 from fastapi import FastAPI
 
-from agent_governance import init_telemetry, load_config
-from agent_governance.integrations import fastapi_middleware
-
-cfg = load_config("governance.yaml")
-logger = init_telemetry(cfg.section("telemetry"))
+from agent_governance.integrations import cloud_run_fastapi_runtime
 
 app = FastAPI()
-fastapi_middleware(app, logger, cfg.agent)
+runtime = cloud_run_fastapi_runtime(app, config_path="governance.yaml")
 
 
 @app.get("/")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "agent_id": runtime.config.agent.agent_id,
+        "runtime": runtime.runtime.platform,
+    }

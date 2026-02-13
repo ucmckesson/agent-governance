@@ -98,3 +98,22 @@ This keeps business-agent code separate from policy and telemetry concerns.
 - Fail-closed guardrails on internal guardrail errors.
 - Config-driven policy without app code changes.
 - Deterministic telemetry envelope for operations and compliance.
+
+## 9) Production bootstrap model
+
+Use `init_governance()` to initialize the full runtime in one call:
+
+- config load + env overrides
+- runtime detection (`cloud_run`, `agent_engine`, `gke`, `local`)
+- telemetry setup (auto Cloud Logging on GCP when enabled by runtime)
+- ADK middleware wiring
+- startup registration event + periodic heartbeat
+
+For FastAPI on Cloud Run, use `cloud_run_fastapi_runtime(app, config_path)` to:
+
+- add telemetry middleware
+- register startup lifecycle
+- attach shutdown handlers (`mark_stopped`, `stop_heartbeat`)
+
+This is the recommended pattern for pip-installed adopters who want agent
+activity automatically logged in Cloud Logging after deployment.

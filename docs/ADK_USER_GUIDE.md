@@ -167,3 +167,21 @@ await governance.after_tool_call(
 - Telemetry fails open. Guardrails fail closed.
 - This strict guardrails policy is the SDK default when guardrails are omitted.
 - If you need team-specific policies, update guardrails.yaml and model_schema.yaml only.
+
+## 6) One-call bootstrap for deployed services
+
+For Cloud Run / Agent Engine style deployments, use:
+
+```python
+from agent_governance import init_governance
+
+runtime = init_governance("governance.yaml")
+
+# Access initialized components
+logger = runtime.logger
+governance = runtime.middleware
+lifecycle = runtime.lifecycle
+```
+
+This enables startup registration, heartbeat events, runtime detection and
+telemetry initialization in one step.

@@ -108,6 +108,9 @@ class GovernanceLogger:
     def error_event(self, agent, ctx: RequestContext, message: str, **details) -> None:
         self.emit_event(build_event(EventType.ERROR_EVENT, agent, ctx, {"message": message, **details}))
 
+    def registration_event(self, agent, ctx: RequestContext, status: str, **details) -> None:
+        self.emit_event(build_event(EventType.REGISTRATION_EVENT, agent, ctx, {"status": status, **details}))
+
 
 def init_telemetry(config: Dict[str, Any]) -> GovernanceLogger:
     redaction_keys = config.get("redact_fields") or config.get("redaction_keys", [])
@@ -122,6 +125,19 @@ def init_telemetry(config: Dict[str, Any]) -> GovernanceLogger:
         log_level=log_level,
     )
     cloud_cfg = config.get("cloud_logging", {})
+    if not cloud_cfg and _is_gcp_runtime():
+        cloud_cfg = {"enabled": True}
     if cloud_cfg.get("enabled"):
         enable_cloud_logging(logger._logger, cloud_cfg)
     return logger
+
+
+def _is_gcp_runtime() -> bool:
+    import os
+
+    return bool(
+        os.getenv("K_SERVICE")
+        or os.getenv("GOOGLE_CLOUD_PROJECT")
+        or os.getenv("GCP_PROJECT")
+        or os.getenv("VERTEX_AI_AGENT_ENGINE")
+    )
