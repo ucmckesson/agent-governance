@@ -42,6 +42,8 @@ You can reference team-specific YAML files from governance.yaml:
 ## Guides
 
 - See [docs/ADK_USER_GUIDE.md](docs/ADK_USER_GUIDE.md)
+- See [docs/ADK_E2E_GUIDE.md](docs/ADK_E2E_GUIDE.md)
+- See [docs/REFERENCE_ARCHITECTURE.md](docs/REFERENCE_ARCHITECTURE.md)
 
 ## Package layout
 
