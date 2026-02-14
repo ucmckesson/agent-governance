@@ -29,6 +29,16 @@ This script:
 
 `docker compose up -d`
 
+## Cloud Run production-style test (GitHub Actions)
+
+- Cloud Run app: `deploy/cloud_run/main.py`
+- Config: `deploy/cloud_run/governance.yaml`
+- Dockerfile: `deploy/cloud_run/Dockerfile`
+- Workflow template: `../examples/github_actions/cloudrun_adk_multiagent_prod_test.yaml`
+
+Copy the workflow template into `.github/workflows/` in your repo and follow
+the setup in [docs/CLOUD_RUN_GITHUB_ACTIONS_GUIDE.md](../docs/CLOUD_RUN_GITHUB_ACTIONS_GUIDE.md).
+
 ## Tests
 
 `pytest -q`

@@ -58,6 +58,8 @@ You can reference team-specific YAML files from governance.yaml:
 
 - See [docs/CUSTOMER_QUICKSTART.md](docs/CUSTOMER_QUICKSTART.md)
 - See [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
+- See [docs/CLOUD_RUN_GITHUB_ACTIONS_GUIDE.md](docs/CLOUD_RUN_GITHUB_ACTIONS_GUIDE.md)
+- See [docs/MANUAL_CLOUD_RUN_DEPLOY.md](docs/MANUAL_CLOUD_RUN_DEPLOY.md)
 - See [docs/ADK_USER_GUIDE.md](docs/ADK_USER_GUIDE.md)
 - See [docs/ADK_E2E_GUIDE.md](docs/ADK_E2E_GUIDE.md)
 - See [docs/REFERENCE_ARCHITECTURE.md](docs/REFERENCE_ARCHITECTURE.md)

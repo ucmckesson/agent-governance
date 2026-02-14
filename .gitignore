@@ -10,6 +10,10 @@ bin-release/
 venv/
 .env
 
+# Local/manual deployment notes (do not commit)
+docs/MANUAL_DEPLOYMENT_RUNBOOK_STATUS.md
+docs/MANUAL_CLOUD_RUN_DEPLOY.md
+
 # Executables
 *.swf
 *.air

@@ -1,0 +1,75 @@
+name: Cloud Run ADK Production Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "adk-multiagent-test/**"
+      - "src/agent_governance/**"
+      - "examples/github_actions/cloudrun_adk_multiagent_prod_test.yaml"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy-and-smoke:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      SERVICE_NAME: adk-multiagent-prod-test
+      REPOSITORY: app-images
+      IMAGE: adk-multiagent-prod-test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker auth
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        run: |
+          IMAGE_URI=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
+          gcloud builds submit \
+            --tag "$IMAGE_URI" \
+            --file adk-multiagent-test/deploy/cloud_run/Dockerfile \
+            .
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+
+      - name: Deploy Cloud Run service
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image "$IMAGE_URI" \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --set-env-vars GOVERNANCE_CONFIG_PATH=/app/adk-multiagent-test/deploy/cloud_run/governance.yaml \
+            --set-env-vars AZURE_OPENAI_MOCK=false \
+            --set-env-vars AZURE_OPENAI_ENDPOINT=${{ vars.AZURE_OPENAI_ENDPOINT }} \
+            --set-env-vars AZURE_OPENAI_API_VERSION=${{ vars.AZURE_OPENAI_API_VERSION }} \
+            --set-env-vars AZURE_OPENAI_DEPLOYMENT_NAME=${{ vars.AZURE_OPENAI_DEPLOYMENT_NAME }} \
+            --set-env-vars AZURE_OPENAI_SCOPE=${{ vars.AZURE_OPENAI_SCOPE }} \
+            --set-env-vars AZURE_OPENAI_TOKEN_URL=${{ vars.AZURE_OPENAI_TOKEN_URL }} \
+            --set-secrets AZURE_OPENAI_CLIENT_ID=AZURE_OPENAI_CLIENT_ID:latest \
+            --set-secrets AZURE_OPENAI_CLIENT_SECRET=AZURE_OPENAI_CLIENT_SECRET:latest
+
+      - name: Smoke test endpoints
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.REGION }} --format='value(status.url)')
+          echo "Service URL: $URL"
+          curl -fsS "$URL/health"
+          curl -fsS -X POST "$URL/smoke"

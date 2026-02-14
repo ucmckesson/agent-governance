@@ -1,0 +1,29 @@
+agent:
+  agent_id: adk-multiagent-cloudrun
+  agent_name: ADK MultiAgent Cloud Run
+  agent_type: adk
+  version: "0.1.1"
+  env: prod
+  gcp_project: ""
+
+telemetry:
+  enabled: true
+  log_level: INFO
+  redact_fields: ["authorization", "token", "secret", "api_key"]
+  tracing:
+    enabled: true
+    sample_rate: 1.0
+    dev_console: false
+
+guardrails:
+  enabled: true
+
+dlp:
+  enabled: true
+  scan_input: true
+  scan_output: true
+  action_on_input_pii: log
+  action_on_output_pii: log
+
+registry:
+  heartbeat_interval_s: 60

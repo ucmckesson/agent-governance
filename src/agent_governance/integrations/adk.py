@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import time
 from typing import Any, Dict
 
@@ -31,11 +33,16 @@ class GovernanceADKMiddleware:
         self._config = config
         self._logger = init_telemetry(config.section("telemetry"))
         init_tracing(config.agent, config.section("telemetry"))
-        self._guardrails = GuardrailsEngine(config.section("guardrails"), self._logger)
+        guardrails_cfg = config.section("guardrails")
+        self._guardrails_enabled = bool(guardrails_cfg.get("enabled", True))
+        self._guardrails_policy = guardrails_cfg.get("policy_file") or guardrails_cfg.get("policy_path") or "inline_or_default"
+        self._guardrails_policy_fingerprint = _policy_fingerprint(guardrails_cfg)
+        self._guardrails = GuardrailsEngine(guardrails_cfg, self._logger)
         dlp_cfg = config.section("dlp")
         self._dlp = DLPScanner.from_config(dlp_cfg) if dlp_cfg.get("enabled", True) else None
         self._active_spans = {}
         self._tool_spans = {}
+        self._emit_guardrails_status()
 
     @property
     def agent(self):
@@ -60,7 +67,14 @@ class GovernanceADKMiddleware:
         span_ctx = start_span("agent_request", {"agent_id": agent_identity.agent_id})
         span = span_ctx.__enter__()
         self._active_spans[ctx.request_id] = (span_ctx, span)
-        self._logger.agent_request_start(agent_identity, ctx, source="adk")
+        self._logger.agent_request_start(
+            agent_identity,
+            ctx,
+            source="adk",
+            guardrails_enabled=self._guardrails_enabled,
+            guardrails_policy=self._guardrails_policy,
+            guardrails_policy_fingerprint=self._guardrails_policy_fingerprint,
+        )
 
         guard = await self._guardrails.check_input(ctx, user_input, agent=agent_identity)
         if guard.action == GuardrailAction.BLOCK:
@@ -136,3 +150,32 @@ class GovernanceADKMiddleware:
             span.set_attribute("latency_ms", latency_ms)
             span_ctx.__exit__(None, None, None)
         return output
+
+    def _emit_guardrails_status(self) -> None:
+        ctx = RequestContext()
+        self._logger.safety_event(
+            self.agent,
+            ctx,
+            event_name="guardrails_policy_loaded",
+            action="allow" if self._guardrails_enabled else "block",
+            rule_name="guardrails_policy",
+            guardrails_enabled=self._guardrails_enabled,
+            guardrails_policy=self._guardrails_policy,
+            guardrails_policy_fingerprint=self._guardrails_policy_fingerprint,
+        )
+        if not self._guardrails_enabled:
+            self._logger.error_event(
+                self.agent,
+                ctx,
+                message="Guardrails are disabled for this agent",
+                severity="critical",
+                alert_type="guardrails_disabled",
+                guardrails_enabled=False,
+                guardrails_policy=self._guardrails_policy,
+                guardrails_policy_fingerprint=self._guardrails_policy_fingerprint,
+            )
+
+
+def _policy_fingerprint(policy: Dict[str, Any]) -> str:
+    serialized = json.dumps(policy, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()[:16]

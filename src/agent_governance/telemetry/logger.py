@@ -53,8 +53,8 @@ class GovernanceLogger:
     def _emit(self, payload: Dict[str, Any]) -> None:
         self._logger.info(json.dumps(payload, separators=(",", ":")))
 
-    def agent_request_start(self, agent, ctx: RequestContext, source: str = "adk") -> None:
-        self.emit_event(build_event(EventType.AGENT_REQUEST_START, agent, ctx, {"source": source}))
+    def agent_request_start(self, agent, ctx: RequestContext, source: str = "adk", **details) -> None:
+        self.emit_event(build_event(EventType.AGENT_REQUEST_START, agent, ctx, {"source": source, **details}))
 
     def agent_request_end(self, agent, ctx: RequestContext, status: str, latency_ms: int, **metrics) -> None:
         self.emit_event(
