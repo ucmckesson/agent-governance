@@ -31,6 +31,39 @@ Optional extras:
 
 ## 3) Minimal configuration
 
+Recommended app repo structure:
+
+```text
+my-agent-app/
+  src/
+    app.py
+  governance.yaml
+  guardrails.yaml
+  model_schema.yaml
+```
+
+Alternative structure with a config folder:
+
+```text
+my-agent-app/
+  src/
+    app.py
+  config/
+    governance.yaml
+    guardrails.yaml
+    model_schema.yaml
+```
+
+If you use `config/`, initialize with `init_governance("config/governance.yaml")`.
+
+Default behavior when files are omitted:
+
+- `governance.yaml` is required (package needs a base config file).
+- if `guardrails.policy_file` is not set, package uses built-in default policy:
+  - `src/agent_governance/guardrails/default_guardrails.yaml`
+- if `model_schema_file` is not set, schema validation is skipped.
+- if `telemetry.cloud_logging` is not explicitly set and runtime is GCP, Cloud Logging is auto-enabled.
+
 Create `governance.yaml`:
 
 ```yaml
