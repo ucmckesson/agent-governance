@@ -55,6 +55,7 @@ properties:
   guardrails:
     type: object
     properties:
+      profile: { type: string, enum: [strict, balanced, permissive, custom], default: strict }
       policy_file: { type: string }
       policy_path: { type: string }
       model_schema_file: { type: string }

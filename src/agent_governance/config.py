@@ -51,6 +51,79 @@ def _default_guardrails_policy() -> Dict[str, Any]:
         return {}
 
 
+def _guardrails_profile_defaults(profile: str) -> Dict[str, Any]:
+    profile = (profile or "strict").lower()
+
+    if profile == "custom":
+        return {}
+
+    if profile == "strict":
+        return {
+            "enabled": True,
+            "input_validation": {"block_known_injection_patterns": True},
+            "content_safety": {
+                "enabled": True,
+                "block_categories": ["harassment", "hate_speech", "violence", "self_harm", "sexual_content"],
+                "topic_blocklist": ["illegal_acts", "sexual_content", "competitor_data", "PII_extraction"],
+            },
+            "tools": {
+                "default_policy": {"allowed": False},
+                "policies": [
+                    {"tool_name": "search_internal_kb", "allowed": True},
+                    {"tool_name": "read_read_only_db", "allowed": True},
+                    {"tool_name": "execute_shell", "allowed": False},
+                    {"tool_name": "delete_file", "allowed": False},
+                    {"tool_name": "write_to_prod_db", "allowed": False},
+                    {"tool_name": "email_user", "allowed": True, "requires_confirmation": True},
+                    {"tool_name": "update_customer_record", "allowed": True, "requires_confirmation": True},
+                ],
+            },
+            "rate_limiting": {
+                "enabled": True,
+                "requests_per_minute_per_user": 10,
+                "requests_per_minute_global": 10,
+            },
+        }
+
+    if profile == "balanced":
+        return {
+            "enabled": True,
+            "input_validation": {"block_known_injection_patterns": True},
+            "content_safety": {
+                "enabled": True,
+                "block_categories": ["harassment", "hate_speech", "violence", "self_harm"],
+            },
+            "tools": {
+                "default_policy": {"allowed": True},
+            },
+            "rate_limiting": {
+                "enabled": True,
+                "requests_per_minute_per_user": 60,
+                "requests_per_minute_global": 300,
+            },
+        }
+
+    if profile == "permissive":
+        return {
+            "enabled": True,
+            "input_validation": {"block_known_injection_patterns": False},
+            "content_safety": {
+                "enabled": True,
+                "block_categories": [],
+            },
+            "tools": {
+                "default_policy": {"allowed": True},
+            },
+            "rate_limiting": {
+                "enabled": True,
+                "requests_per_minute_per_user": 300,
+                "requests_per_minute_global": 1000,
+            },
+        }
+
+    raise ConfigError(f"Unsupported guardrails profile: {profile}")
+
+
 def _normalize_guardrails_policy(policy: Dict[str, Any]) -> Dict[str, Any]:
     if not policy:
         return {}
@@ -182,6 +255,10 @@ def load_config(
         data["guardrails"] = _default_guardrails_policy()
 
     if isinstance(data.get("guardrails"), dict):
+        profile = str(data["guardrails"].get("profile", "strict")).lower()
+        profile_defaults = _guardrails_profile_defaults(profile)
+        if profile_defaults:
+            data["guardrails"] = _deep_merge(profile_defaults, data["guardrails"])
         data["guardrails"] = _normalize_guardrails_policy(data["guardrails"])
 
     guardrails_cfg = data.get("guardrails") or {}

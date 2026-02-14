@@ -48,9 +48,87 @@ telemetry:
   buffer_size: 100
 
 guardrails:
+  profile: strict   # strict | balanced | permissive | custom
   policy_file: "guardrails.yaml"
   model_schema_file: "model_schema.yaml"
 ```
+
+Profile behavior:
+
+- `strict`: strongest defaults (recommended for production)
+- `balanced`: safer defaults with less restrictive throughput/tool posture
+- `permissive`: minimal blocking posture for low-risk/internal experimentation
+- `custom`: no profile defaults; user policy defines behavior
+
+User overrides in `guardrails:` always take precedence over profile defaults.
+
+## 3b) Per-user customization without code changes
+
+Use `telemetry.custom_fields` to stamp tenant/team metadata on all events:
+
+```yaml
+telemetry:
+  enabled: true
+  custom_fields:
+    team: "research"
+    tenant: "acme"
+    app: "agent-portal"
+```
+
+Use env overrides for deployment-specific changes:
+
+- `GOV_GUARDRAILS__PROFILE=balanced`
+- `GOV_TELEMETRY__LOG_LEVEL=DEBUG`
+
+## 3c) Load custom guardrails policy (easy path)
+
+Users can keep package defaults and swap policy only.
+
+Create `guardrails.yaml` in app repo, then set:
+
+```yaml
+guardrails:
+  profile: custom
+  policy_file: "guardrails.yaml"
+  model_schema_file: "model_schema.yaml"
+```
+
+No code changes are required when using `init_governance("governance.yaml")`.
+
+Optional explicit override in code:
+
+```python
+from agent_governance.integrations import GovernanceADKMiddleware
+
+gov = GovernanceADKMiddleware.from_config(
+    "governance.yaml",
+    guardrails_path="/absolute/path/to/guardrails.yaml",
+)
+```
+
+## 3d) Agent metadata: required vs custom
+
+Required core metadata in `agent`:
+
+- `agent_id`
+- `agent_name`
+- `agent_type`
+- `version`
+- `env`
+- `gcp_project`
+
+For extra business metadata (team/owner/tenant/cost-center), use telemetry fields:
+
+```yaml
+telemetry:
+  custom_fields:
+    team: "research"
+    owner: "platform-ai"
+    tenant: "acme"
+    cost_center: "RND-42"
+```
+
+These custom fields are emitted on all governance events.
 
 ## 4) Fastest production bootstrap
 
@@ -133,7 +211,22 @@ Check for these event families:
 - tool call events
 - policy/guardrail outcomes
 
+Guardrails policy observability (current build):
+
+- `agent_request_start` includes:
+  - `attributes.guardrails_enabled`
+  - `attributes.guardrails_policy`
+  - `attributes.guardrails_policy_fingerprint`
+- startup emits `safety_event` with `event=guardrails_policy_loaded`
+- when guardrails are disabled, `error_event` is emitted with:
+  - `attributes.alert_type=guardrails_disabled`
+  - `attributes.severity=critical`
+
 In GCP runtimes, Cloud Logging is auto-enabled when telemetry cloud settings are not explicitly configured.
+
+Tracing note:
+
+- if tracing is enabled and Cloud Trace export fails with `PermissionDenied`, grant runtime service account role `roles/cloudtrace.agent`.
 
 ## 9) Related docs
 
