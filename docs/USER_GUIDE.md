@@ -79,6 +79,17 @@ telemetry:
   enabled: true
   redaction_keys: ["authorization", "token", "secret"]
   buffer_size: 100
+  tracing:
+    enabled: true
+    session_tracking:
+      enabled: true
+      session_attribute: "governance.session_id"
+      user_attribute: "governance.user_id"
+  cost_tracking:
+    enabled: true
+    pricing:
+      "gpt-4o": { input: 2.50, output: 10.00 }
+    alert_threshold_usd: 1.0
 
 guardrails:
   profile: strict   # strict | balanced | permissive | custom
@@ -210,6 +221,48 @@ await governance.after_tool_call(
 )
 ```
 
+Prompt fingerprint tracking (optional):
+
+```python
+processed_input, ctx, start_time = await governance.before_agent_call(
+  governance.agent,
+  user_input,
+  user_id=user_id,
+  session_id=session_id,
+  prompt_text="current agent instruction prompt",
+)
+```
+
+Runtime LLM cost tracking (optional, from your model wrapper):
+
+```python
+await governance.record_llm_usage(
+  governance.agent,
+  ctx,
+  model="gpt-4o",
+  input_tokens=1250,
+  output_tokens=340,
+  delegation_chain="orchestrator→research",
+)
+```
+
+Delegation tracking (multi-agent):
+
+```python
+await governance.record_delegation(
+  governance.agent,
+  ctx,
+  source_agent="orchestrator",
+  target_agent="research_agent",
+  reason="query_requires_research",
+  hop_number=1,
+  chain=["orchestrator", "research_agent"],
+  method="sub_agent",
+)
+```
+
+This emits `agent_delegation` events and adds delegation attributes on spans.
+
 ## 6) Shutdown handling (important)
 
 On service shutdown, emit stopped status and stop heartbeat:
@@ -250,6 +303,17 @@ Guardrails policy observability (current build):
   - `attributes.guardrails_enabled`
   - `attributes.guardrails_policy`
   - `attributes.guardrails_policy_fingerprint`
+  - `attributes.prompt_fingerprint` (when `prompt_text` is provided)
+  - `attributes.prompt_length_chars` (when `prompt_text` is provided)
+- session/span linkage:
+  - `context.session_id`
+  - `context.trace_id`
+  - `context.span_id`
+- multi-agent graph event:
+  - `agent_delegation`
+- runtime cost event:
+  - `cost_event`
+  - `agent_request_end.attributes.total_request_cost_usd`
 - startup emits `safety_event` with `event=guardrails_policy_loaded`
 - when guardrails are disabled, `error_event` is emitted with:
   - `attributes.alert_type=guardrails_disabled`

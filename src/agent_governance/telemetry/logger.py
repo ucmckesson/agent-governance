@@ -66,8 +66,37 @@ class GovernanceLogger:
             )
         )
 
+    def agent_delegation(
+        self,
+        agent,
+        ctx: RequestContext,
+        source_agent: str,
+        target_agent: str,
+        reason: str | None = None,
+        hop_number: int | None = None,
+        chain: str | None = None,
+        method: str = "sub_agent",
+        **details,
+    ) -> None:
+        payload: Dict[str, Any] = {
+            "source_agent": source_agent,
+            "target_agent": target_agent,
+            "method": method,
+            **details,
+        }
+        if reason is not None:
+            payload["reason"] = reason
+        if hop_number is not None:
+            payload["hop_number"] = hop_number
+        if chain is not None:
+            payload["chain"] = chain
+        self.emit_event(build_event(EventType.AGENT_DELEGATION, agent, ctx, payload))
+
     def tool_call_start(self, agent, ctx: RequestContext, tool_name: str) -> None:
         self.emit_event(build_event(EventType.TOOL_CALL_START, agent, ctx, {"tool_name": tool_name}))
+
+    def cost_event(self, agent, ctx: RequestContext, **details) -> None:
+        self.emit_event(build_event(EventType.COST_EVENT, agent, ctx, details))
 
     def tool_call_end(
         self,

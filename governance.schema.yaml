@@ -52,6 +52,28 @@ properties:
           enabled: { type: boolean, default: false }
           sample_rate: { type: number, minimum: 0, maximum: 1 }
           dev_console: { type: boolean, default: false }
+          session_tracking:
+            type: object
+            properties:
+              enabled: { type: boolean, default: true }
+              session_attribute: { type: string, default: governance.session_id }
+              user_attribute: { type: string, default: governance.user_id }
+      cost_tracking:
+        type: object
+        properties:
+          enabled: { type: boolean, default: false }
+          pricing:
+            type: object
+            additionalProperties:
+              type: object
+              properties:
+                input: { type: number }
+                output: { type: number }
+          alert_threshold_usd: { type: number, minimum: 0 }
+      prompt_tracking:
+        type: object
+        properties:
+          enabled: { type: boolean, default: false }
   guardrails:
     type: object
     properties:

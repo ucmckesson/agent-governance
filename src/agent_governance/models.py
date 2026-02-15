@@ -64,6 +64,8 @@ class GuardrailAction(str, Enum):
 class EventType(str, Enum):
     AGENT_REQUEST_START = "agent_request_start"
     AGENT_REQUEST_END = "agent_request_end"
+    AGENT_DELEGATION = "agent_delegation"
+    COST_EVENT = "cost_event"
     TOOL_CALL_START = "tool_call_start"
     TOOL_CALL_END = "tool_call_end"
     SAFETY_EVENT = "safety_event"

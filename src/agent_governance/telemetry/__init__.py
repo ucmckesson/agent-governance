@@ -1,5 +1,6 @@
 from .logger import GovernanceLogger, init_telemetry
 from .tracing import init_tracing, get_tracer, shutdown_tracing
+from .cost_tracker import CostTracker
 
 __all__ = [
 	"GovernanceLogger",
@@ -7,4 +8,5 @@ __all__ = [
 	"init_tracing",
 	"get_tracer",
 	"shutdown_tracing",
+	"CostTracker",
 ]
