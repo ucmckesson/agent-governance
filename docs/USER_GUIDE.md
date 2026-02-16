@@ -59,8 +59,9 @@ If you use `config/`, initialize with `init_governance("config/governance.yaml")
 Default behavior when files are omitted:
 
 - `governance.yaml` is required (package needs a base config file).
-- if `guardrails.policy_file` is not set, package uses built-in default policy:
+- if `guardrails.policy_file` is not set, package automatically loads the built-in hardened default policy (strict baseline):
   - `src/agent_governance/guardrails/default_guardrails.yaml`
+  - this file is inside the SDK package, so you do not need an app-level `guardrails.yaml` unless you want to override defaults.
 - if `model_schema_file` is not set, schema validation is skipped.
 - if `telemetry.cloud_logging` is not explicitly set and runtime is GCP, Cloud Logging is auto-enabled.
 
@@ -127,6 +128,8 @@ Use env overrides for deployment-specific changes:
 ## 3c) Load custom guardrails policy (easy path)
 
 Users can keep package defaults and swap policy only.
+
+If you do nothing here, the SDK keeps using the built-in hardened defaults from `src/agent_governance/guardrails/default_guardrails.yaml`.
 
 Create `guardrails.yaml` in app repo, then set:
 

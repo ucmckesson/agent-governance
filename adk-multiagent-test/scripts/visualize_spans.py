@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime
@@ -75,12 +76,26 @@ def build_mermaid(spans: list[SpanRecord]) -> str:
     lines = ["flowchart LR"]
     nodes = set()
 
+    def _node_id(value: str) -> str:
+        node = re.sub(r"[^0-9A-Za-z_]", "_", value.strip())
+        if not node:
+            node = "node"
+        if node[0].isdigit():
+            node = f"n_{node}"
+        return node
+
+    def _label(value: str) -> str:
+        return value.replace('"', "'")
+
     def add_edge(a: str, b: str, label: str):
-        na = a.replace("-", "_").replace(" ", "_")
-        nb = b.replace("-", "_").replace(" ", "_")
-        nodes.add((na, a))
-        nodes.add((nb, b))
-        lines.append(f"  {na}[\"{a}\"] -->|{label}| {nb}[\"{b}\"]")
+        na = _node_id(a)
+        nb = _node_id(b)
+        la = _label(a)
+        lb = _label(b)
+        ll = _label(label)
+        nodes.add((na, la))
+        nodes.add((nb, lb))
+        lines.append(f"  {na}[\"{la}\"] -->|{ll}| {nb}[\"{lb}\"]")
 
     for (src, tgt), c in a2a.items():
         add_edge(src, tgt, f"A2A x{c}")
@@ -194,12 +209,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Visualize cloud logging span JSONL")
     parser.add_argument(
         "--input",
-        default="scripts/artifacts/spans.cloudlogging.jsonl",
+        default="artifacts/spans.cloudlogging.jsonl",
         help="Path to spans.cloudlogging.jsonl",
     )
     parser.add_argument(
         "--output",
-        default="scripts/artifacts/spans_report.html",
+        default="artifacts/spans_report.html",
         help="Output HTML path",
     )
     args = parser.parse_args()

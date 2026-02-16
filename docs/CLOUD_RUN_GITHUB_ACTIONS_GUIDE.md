@@ -56,6 +56,23 @@ If using legacy credentials style, also add GitHub secret:
 
 - `GCP_CREDENTIALS` (service account JSON)
 
+## Deployment gate (built-in in workflow templates)
+
+Both Cloud Run workflow templates now run a deployment gate before build/deploy:
+
+- `python scripts/validate_config.py adk-multiagent-test/deploy/cloud_run/governance.yaml --deployment-gate`
+
+The gate fails the workflow if:
+
+- required `agent` metadata is missing/empty (`agent_id`, `agent_name`, `agent_type`, `version`, `env`, `gcp_project`, `region`)
+- `guardrails.enabled` is false
+- no enforceable guardrails controls are present
+
+For template configs where `agent.gcp_project` is set by environment, the workflows pass:
+
+- `GOV_AGENT__GCP_PROJECT=${{ env.PROJECT_ID }}`
+- `GOV_AGENT__REGION=${{ env.REGION }}`
+
 ## IAM roles for deployer service account
 
 Grant minimal required roles:

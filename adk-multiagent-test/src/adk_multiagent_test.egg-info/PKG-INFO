@@ -1,0 +1,61 @@
+Metadata-Version: 2.4
+Name: adk-multiagent-test
+Version: 0.1.0
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: google-adk>=1.0.0
+Requires-Dist: requests>=2.31
+Requires-Dist: python-dotenv>=1.0
+Requires-Dist: jsonschema>=4.21
+Requires-Dist: opentelemetry-api>=1.22
+Requires-Dist: opentelemetry-sdk>=1.22
+Requires-Dist: opentelemetry-exporter-gcp-trace>=1.6
+Requires-Dist: opentelemetry-propagator-gcp>=1.6
+Requires-Dist: opentelemetry-instrumentation-httpx>=0.43b0
+Requires-Dist: opentelemetry-semantic-conventions>=0.43b0
+Requires-Dist: pytest>=7.4
+
+# ADK Multi-Agent Test Harness
+
+Implements A2A + Guardrails + OTel observability using Azure OpenAI.
+
+## Setup
+
+- Copy `.env.example` to `.env` and fill values
+- Install deps: `python -m pip install -e .`
+
+By default `AZURE_OPENAI_MOCK=true` runs a local mock model for tests and demos.
+
+## Run demo
+
+`python scripts/run_demo.py`
+
+## Run Azure ADK + OTel + A2A validation
+
+1. Set `AZURE_OPENAI_MOCK=false` in `.env`
+2. Fill Azure values in `.env` (`AZURE_OPENAI_ENDPOINT`, auth fields, deployment, API version)
+3. Run: `python scripts/run_azure_adk_otel_e2e.py`
+
+This script:
+- runs multi-agent queries through ADK
+- prints A2A transfer targets per query
+- prints summarized OTel span counts
+- writes Cloud Logging JSONL output to `artifacts/spans.cloudlogging.jsonl`
+
+## Optional Jaeger
+
+`docker compose up -d`
+
+## Cloud Run production-style test (GitHub Actions)
+
+- Cloud Run app: `deploy/cloud_run/main.py`
+- Config: `deploy/cloud_run/governance.yaml`
+- Dockerfile: `deploy/cloud_run/Dockerfile`
+- Workflow template: `../examples/github_actions/cloudrun_adk_multiagent_prod_test.yaml`
+
+Copy the workflow template into `.github/workflows/` in your repo and follow
+the setup in [docs/CLOUD_RUN_GITHUB_ACTIONS_GUIDE.md](../docs/CLOUD_RUN_GITHUB_ACTIONS_GUIDE.md).
+
+## Tests
+
+`pytest -q`

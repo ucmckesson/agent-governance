@@ -1,0 +1,82 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>ADK Span Visualization</title>
+  <script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs'; mermaid.initialize({startOnLoad:true});</script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 20px; }
+    th, td { border: 1px solid #ddd; padding: 6px; font-size: 12px; text-align: left; }
+    th { background: #f6f6f6; }
+    details { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h2>ADK + A2A + OTel Visualization</h2>
+  <div class="cards">
+    <div class="card"><b>Total spans</b><br/>56</div>
+    <div class="card"><b>Traces</b><br/>3</div>
+    <div class="card"><b>A2A spans</b><br/>3</div>
+    <div class="card"><b>LLM spans</b><br/>8</div>
+    <div class="card"><b>Guardrails</b><br/>16</div>
+  </div>
+
+  <h3>Communication graph</h3>
+  <div class="mermaid">flowchart LR
+  orchestrator["orchestrator"] -->|A2A x1| research_agent["research_agent"]
+  research_agent["research_agent"] -->|A2A x1| validator_agent["validator_agent"]
+  validator_agent["validator_agent"] -->|A2A x1| research_agent["research_agent"]
+  Agent["Agent"] -->|Tool x3| transfer_to_agent["transfer_to_agent"]
+  Agent["Agent"] -->|Tool x1| validate_data["validate_data"]
+  Agent["Agent"] -->|Tool x4| web_lookup["web_lookup"]
+  Agent["Agent"] -->|Tool x1| _merged_tools_["(merged tools)"]</div>
+
+  <h3>A2A delegations</h3>
+  <table>
+    <thead><tr><th>timestamp</th><th>source</th><th>target</th><th>task_id</th><th>duration_ms</th></tr></thead>
+    <tbody>
+      <tr><td>2026-02-15T18:38:27.403825+00:00</td><td>orchestrator</td><td>research_agent</td><td>call_FTculJ7jMTiHssBLZcs06cPF</td><td>0.03</td></tr>
+<tr><td>2026-02-15T18:38:33.110370+00:00</td><td>research_agent</td><td>validator_agent</td><td>call_cucYD3bmmSisMNJGD8AGiHPy</td><td>0.03</td></tr>
+<tr><td>2026-02-15T18:38:44.477131+00:00</td><td>validator_agent</td><td>research_agent</td><td>call_VPAxV66HXBwBPbtbaVv6PyWK</td><td>0.03</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Tool calls</h3>
+  <table>
+    <thead><tr><th>timestamp</th><th>tool</th><th>tool_call_id</th><th>duration_ms</th></tr></thead>
+    <tbody>
+      <tr><td>2026-02-15T18:38:27.405081+00:00</td><td>transfer_to_agent</td><td>call_FTculJ7jMTiHssBLZcs06cPF</td><td>0.26</td></tr>
+<tr><td>2026-02-15T18:38:33.111145+00:00</td><td>transfer_to_agent</td><td>call_cucYD3bmmSisMNJGD8AGiHPy</td><td>0.29</td></tr>
+<tr><td>2026-02-15T18:38:36.614834+00:00</td><td>validate_data</td><td>call_v180ch0zJK2hJsOjU2SDi4gF</td><td>0.23</td></tr>
+<tr><td>2026-02-15T18:38:44.477964+00:00</td><td>transfer_to_agent</td><td>call_VPAxV66HXBwBPbtbaVv6PyWK</td><td>0.23</td></tr>
+<tr><td>2026-02-15T18:38:57.288578+00:00</td><td>web_lookup</td><td>call_jX6DiFpFccvOrHpU3v0WpBjD</td><td>0.21</td></tr>
+<tr><td>2026-02-15T18:38:57.288842+00:00</td><td>web_lookup</td><td>call_HygXswg89jH3UZlh1I1gCFv6</td><td>0.13</td></tr>
+<tr><td>2026-02-15T18:38:57.289007+00:00</td><td>web_lookup</td><td>call_mB0huQBiWlaVE6JdZ0OWv98l</td><td>0.12</td></tr>
+<tr><td>2026-02-15T18:38:57.289161+00:00</td><td>web_lookup</td><td>call_jD3BDY2QjD1DFJvPvPsf6aPM</td><td>0.11</td></tr>
+<tr><td>2026-02-15T18:38:57.289409+00:00</td><td>(merged tools)</td><td>484fc351-6ca6-404b-952a-6d177336c8b5</td><td>0.03</td></tr>
+    </tbody>
+  </table>
+
+  <h3>LLM calls</h3>
+  <table>
+    <thead><tr><th>timestamp</th><th>model</th><th>input_tokens</th><th>output_tokens</th><th>duration_ms</th></tr></thead>
+    <tbody>
+      <tr><td>2026-02-15T18:38:23.987697+00:00</td><td>mckopenai-gpt5-2025-08-07</td><td>441</td><td>91</td><td>5732.87</td></tr>
+<tr><td>2026-02-15T18:38:27.407623+00:00</td><td>mckopenai-gpt5-2025-08-07</td><td>506</td><td>76</td><td>2312.80</td></tr>
+<tr><td>2026-02-15T18:38:29.723075+00:00</td><td>mckopenai-gpt5-2025-08-07</td><td>524</td><td>219</td><td>8781.02</td></tr>
+<tr><td>2026-02-15T18:38:33.112932+00:00</td><td>mckopenai-gpt5-2025-08-07</td><td>601</td><td>281</td><td>3502.28</td></tr>
+<tr><td>2026-02-15T18:38:36.616434+00:00</td><td>mckopenai-gpt5-2025-08-07</td><td>641</td><td>15</td><td>1887.56</td></tr>
+<tr><td>2026-02-15T18:38:38.507246+00:00</td><td>mckopenai-gpt5-2025-08-07</td><td>672</td><td>475</td><td>42727.53</td></tr>
+<tr><td>2026-02-15T18:38:44.480458+00:00</td><td>mckopenai-gpt5-2025-08-07</td><td>710</td><td>1466</td><td>12809.06</td></tr>
+<tr><td>2026-02-15T18:38:57.290929+00:00</td><td>mckopenai-gpt5-2025-08-07</td><td>972</td><td>3185</td><td>23943.73</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Per-trace timeline</h3>
+  <details><summary>7759a856d180bfba311bedd646ef8ea3 (15 spans)</summary><table><thead><tr><th>ts</th><th>span</th><th>duration_ms</th></tr></thead><tbody><tr><td>2026-02-15T18:38:23.986916+00:00</td><td>agent_request</td><td>5734.04</td></tr><tr><td>2026-02-15T18:38:23.987065+00:00</td><td>invocation</td><td>5733.59</td></tr><tr><td>2026-02-15T18:38:23.987168+00:00</td><td>invoke_agent orchestrator</td><td>5733.46</td></tr><tr><td>2026-02-15T18:38:23.987255+00:00</td><td>guardrail.pii_guardrail</td><td>0.01</td></tr><tr><td>2026-02-15T18:38:23.987301+00:00</td><td>guardrail.topic_blocklist</td><td>0.01</td></tr><tr><td>2026-02-15T18:38:23.987697+00:00</td><td>call_llm</td><td>5732.87</td></tr><tr><td>2026-02-15T18:38:23.987728+00:00</td><td>generate_content mckopenai-gpt5-2025-08-07</td><td>5732.82</td></tr><tr><td>2026-02-15T18:38:27.403825+00:00</td><td>a2a_delegation</td><td>0.03</td></tr><tr><td>2026-02-15T18:38:27.405081+00:00</td><td>execute_tool transfer_to_agent</td><td>0.26</td></tr><tr><td>2026-02-15T18:38:27.405478+00:00</td><td>invoke_agent research_agent</td><td>2315.04</td></tr><tr><td>2026-02-15T18:38:27.405569+00:00</td><td>guardrail.pii_guardrail</td><td>0.02</td></tr><tr><td>2026-02-15T18:38:27.405623+00:00</td><td>guardrail.topic_blocklist</td><td>0.01</td></tr><tr><td>2026-02-15T18:38:27.407623+00:00</td><td>call_llm</td><td>2312.80</td></tr><tr><td>2026-02-15T18:38:27.407688+00:00</td><td>generate_content mckopenai-gpt5-2025-08-07</td><td>2312.71</td></tr><tr><td>2026-02-15T18:38:29.720094+00:00</td><td>guardrail.toxicity_guardrail</td><td>0.02</td></tr></tbody></table></details><details><summary>450871c7826dce3151fb680350113c2b (19 spans)</summary><table><thead><tr><th>ts</th><th>span</th><th>duration_ms</th></tr></thead><tbody><tr><td>2026-02-15T18:38:29.721342+00:00</td><td>agent_request</td><td>8783.11</td></tr><tr><td>2026-02-15T18:38:29.721612+00:00</td><td>invocation</td><td>8782.55</td></tr><tr><td>2026-02-15T18:38:29.721956+00:00</td><td>invoke_agent research_agent</td><td>8782.19</td></tr><tr><td>2026-02-15T18:38:29.722035+00:00</td><td>guardrail.pii_guardrail</td><td>0.01</td></tr><tr><td>2026-02-15T18:38:29.722090+00:00</td><td>guardrail.topic_blocklist</td><td>0.01</td></tr><tr><td>2026-02-15T18:38:29.723075+00:00</td><td>call_llm</td><td>8781.02</td></tr><tr><td>2026-02-15T18:38:29.723133+00:00</td><td>generate_content mckopenai-gpt5-2025-08-07</td><td>8780.95</td></tr><tr><td>2026-02-15T18:38:33.110370+00:00</td><td>a2a_delegation</td><td>0.03</td></tr><tr><td>2026-02-15T18:38:33.111145+00:00</td><td>execute_tool transfer_to_agent</td><td>0.29</td></tr><tr><td>2026-02-15T18:38:33.111605+00:00</td><td>invoke_agent validator_agent</td><td>5392.45</td></tr><tr><td>2026-02-15T18:38:33.111694+00:00</td><td>guardrail.pii_guardrail</td><td>0.02</td></tr><tr><td>2026-02-15T18:38:33.111752+00:00</td><td>guardrail.topic_blocklist</td><td>0.01</td></tr><tr><td>2026-02-15T18:38:33.112932+00:00</td><td>call_llm</td><td>3502.28</td></tr><tr><td>2026-02-15T18:38:33.112991+00:00</td><td>generate_content mckopenai-gpt5-2025-08-07</td><td>3502.20</td></tr><tr><td>2026-02-15T18:38:36.614834+00:00</td><td>execute_tool validate_data</td><td>0.23</td></tr><tr><td>2026-02-15T18:38:36.616434+00:00</td><td>call_llm</td><td>1887.56</td></tr><tr><td>2026-02-15T18:38:36.616497+00:00</td><td>generate_content mckopenai-gpt5-2025-08-07</td><td>1887.48</td></tr><tr><td>2026-02-15T18:38:38.503549+00:00</td><td>guardrail.toxicity_guardrail</td><td>0.02</td></tr><tr><td>2026-02-15T18:38:38.503636+00:00</td><td>guardrail.schema_guardrail</td><td>0.11</td></tr></tbody></table></details><details><summary>345338eaa452c24d01e5a1f2c3e9362b (22 spans)</summary><table><thead><tr><th>ts</th><th>span</th><th>duration_ms</th></tr></thead><tbody><tr><td>2026-02-15T18:38:38.505129+00:00</td><td>agent_request</td><td>42730.07</td></tr><tr><td>2026-02-15T18:38:38.505365+00:00</td><td>invocation</td><td>42729.49</td></tr><tr><td>2026-02-15T18:38:38.505888+00:00</td><td>invoke_agent validator_agent</td><td>42728.95</td></tr><tr><td>2026-02-15T18:38:38.505962+00:00</td><td>guardrail.pii_guardrail</td><td>0.02</td></tr><tr><td>2026-02-15T18:38:38.506017+00:00</td><td>guardrail.topic_blocklist</td><td>0.01</td></tr><tr><td>2026-02-15T18:38:38.507246+00:00</td><td>call_llm</td><td>42727.53</td></tr><tr><td>2026-02-15T18:38:38.507295+00:00</td><td>generate_content mckopenai-gpt5-2025-08-07</td><td>42727.47</td></tr><tr><td>2026-02-15T18:38:44.477131+00:00</td><td>a2a_delegation</td><td>0.03</td></tr><tr><td>2026-02-15T18:38:44.477964+00:00</td><td>execute_tool transfer_to_agent</td><td>0.23</td></tr><tr><td>2026-02-15T18:38:44.478390+00:00</td><td>invoke_agent research_agent</td><td>36756.35</td></tr><tr><td>2026-02-15T18:38:44.478498+00:00</td><td>guardrail.pii_guardrail</td><td>0.02</td></tr><tr><td>2026-02-15T18:38:44.478567+00:00</td><td>guardrail.topic_blocklist</td><td>0.01</td></tr><tr><td>2026-02-15T18:38:44.480458+00:00</td><td>call_llm</td><td>12809.06</td></tr><tr><td>2026-02-15T18:38:44.480514+00:00</td><td>generate_content mckopenai-gpt5-2025-08-07</td><td>12808.99</td></tr><tr><td>2026-02-15T18:38:57.288578+00:00</td><td>execute_tool web_lookup</td><td>0.21</td></tr><tr><td>2026-02-15T18:38:57.288842+00:00</td><td>execute_tool web_lookup</td><td>0.13</td></tr><tr><td>2026-02-15T18:38:57.289007+00:00</td><td>execute_tool web_lookup</td><td>0.12</td></tr><tr><td>2026-02-15T18:38:57.289161+00:00</td><td>execute_tool web_lookup</td><td>0.11</td></tr><tr><td>2026-02-15T18:38:57.289409+00:00</td><td>execute_tool (merged)</td><td>0.03</td></tr><tr><td>2026-02-15T18:38:57.290929+00:00</td><td>call_llm</td><td>23943.73</td></tr><tr><td>2026-02-15T18:38:57.290981+00:00</td><td>generate_content mckopenai-gpt5-2025-08-07</td><td>23943.65</td></tr><tr><td>2026-02-15T18:39:21.234334+00:00</td><td>guardrail.toxicity_guardrail</td><td>0.04</td></tr></tbody></table></details>
+</body>
+</html>

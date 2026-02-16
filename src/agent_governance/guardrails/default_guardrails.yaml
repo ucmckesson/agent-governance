@@ -7,10 +7,22 @@ version: "2026-02-11"
 # --- INPUT GUARDRAILS (Before prompt hits the LLM) ---
 input_guardrails:
   - type: prompt_injection
-    threshold: 0.8
+    threshold: 0.7
     action: block
   - type: pii_redaction
-    entities: ["EMAIL_ADDRESS", "CREDIT_CARD", "SSN", "PHONE_NUMBER"]
+    entities:
+      - "EMAIL_ADDRESS"
+      - "PHONE_NUMBER"
+      - "CREDIT_CARD"
+      - "CREDIT_CARD_NUMBER"
+      - "SSN"
+      - "US_SOCIAL_SECURITY_NUMBER"
+      - "PERSON_NAME"
+      - "DATE_OF_BIRTH"
+      - "STREET_ADDRESS"
+      - "IP_ADDRESS"
+      - "MEDICAL_RECORD_NUMBER"
+      - "PASSPORT"
     action: redact
   - type: topic_filter
     disallowed_topics:
@@ -18,36 +30,60 @@ input_guardrails:
       - sexual_content
       - competitor_data
       - PII_extraction
+      - credentials_exfiltration
+      - secret_exfiltration
+      - source_code_exfiltration
+      - patient_data_exposure
+      - financial_data_exposure
+      - prompt_leakage
     action: block
 
 # --- OUTPUT GUARDRAILS (After LLM response, before user sees it) ---
 output_guardrails:
   - type: grounding_check
-    threshold: 0.95
+    threshold: 0.98
     action: block
   - type: content_safety
-    severity: high
+    severity: medium
     action: block
   - type: pii_redaction
-    entities: ["EMAIL_ADDRESS", "CREDIT_CARD", "SSN"]
+    entities:
+      - "EMAIL_ADDRESS"
+      - "PHONE_NUMBER"
+      - "CREDIT_CARD"
+      - "CREDIT_CARD_NUMBER"
+      - "SSN"
+      - "US_SOCIAL_SECURITY_NUMBER"
+      - "PERSON_NAME"
+      - "DATE_OF_BIRTH"
+      - "STREET_ADDRESS"
+      - "IP_ADDRESS"
+      - "MEDICAL_RECORD_NUMBER"
+      - "PASSPORT"
     action: redact
 
 # --- TOOL/ACTION GUARDRAILS (Before agent executes commands) ---
 action_guardrails:
   - type: tool_authorization
     allowed_tools: ["search_internal_kb", "read_read_only_db"]
-    disallowed_tools: ["execute_shell", "delete_file", "write_to_prod_db"]
+    disallowed_tools:
+      - "execute_shell"
+      - "delete_file"
+      - "write_to_prod_db"
+      - "export_customer_data"
+      - "bulk_download_records"
+      - "send_external_http"
     action: restrict
   - type: approval_gate
-    actions: ["email_user", "update_customer_record"]
+    actions: ["email_user", "update_customer_record", "share_report"]
     action: require_approval
 
 # --- MONITORING & LOGGING ---
 logging:
   enabled: true
-  log_level: DEBUG
+  log_level: INFO
 
 # --- RATE LIMITING ---
 rate_limits:
-  max_requests_per_minute: 10
-  max_tokens_per_minute: 5000
+  max_requests_per_minute: 5
+  max_tokens_per_minute: 2000
