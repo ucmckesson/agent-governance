@@ -1,0 +1,141 @@
+{
+  "timestamp_utc": "2026-02-16T21:32:19.198403+00:00",
+  "execution_mode": "mock",
+  "azure_mock": true,
+  "results": [
+    {
+      "query": "What is the capital of France?",
+      "session_id": "session-clean",
+      "output": "Research result: Paris",
+      "transfers": [
+        "research_agent"
+      ],
+      "request_id": "8cbae1d0-52e3-4038-ac76-cb4ac6096ccd"
+    },
+    {
+      "query": "Validate this value: sample_data",
+      "session_id": "session-validate",
+      "output": "{\"valid\": true, \"reasons\": []}",
+      "transfers": [
+        "validator_agent"
+      ],
+      "request_id": "d1b5d058-e6e0-47da-bc38-727615675e52"
+    },
+    {
+      "query": "My email is alice@example.com and my SSN is 123-45-6789",
+      "session_id": "session-pii",
+      "output": "Request blocked: email detected. Please remove personal information.",
+      "transfers": [],
+      "request_id": "88d079e2-3a8b-4a3c-a399-61352e8a081f"
+    },
+    {
+      "query": "Tell me about banned_topic",
+      "session_id": "session-topic",
+      "output": "I can route research or validation requests.",
+      "transfers": [],
+      "request_id": "53593fcc-0945-48a4-bea5-f9e80cd8e53a"
+    }
+  ],
+  "feature_checks": [
+    {
+      "name": "agent_request_start emitted",
+      "passed": true,
+      "details": "['agent_request_start', 'agent_request_end', 'metric_event', 'agent_delegation', 'cost_event', 'agent_request_start', 'agent_request_end', 'metric_event', 'agent_delegation', 'cost_event', 'agent_request_start', 'dlp_event', 'agent_request_end', 'metric_event', 'agent_request_start', 'agent_request_end', 'metric_event', 'cost_event']"
+    },
+    {
+      "name": "agent_request_end emitted",
+      "passed": true,
+      "details": "['agent_request_start', 'agent_request_end', 'metric_event', 'agent_delegation', 'cost_event', 'agent_request_start', 'agent_request_end', 'metric_event', 'agent_delegation', 'cost_event', 'agent_request_start', 'dlp_event', 'agent_request_end', 'metric_event', 'agent_request_start', 'agent_request_end', 'metric_event', 'cost_event']"
+    },
+    {
+      "name": "dlp_event emitted",
+      "passed": true,
+      "details": "['agent_request_start', 'agent_request_end', 'metric_event', 'agent_delegation', 'cost_event', 'agent_request_start', 'agent_request_end', 'metric_event', 'agent_delegation', 'cost_event', 'agent_request_start', 'dlp_event', 'agent_request_end', 'metric_event', 'agent_request_start', 'agent_request_end', 'metric_event', 'cost_event']"
+    },
+    {
+      "name": "cost_event emitted",
+      "passed": true,
+      "details": "['agent_request_start', 'agent_request_end', 'metric_event', 'agent_delegation', 'cost_event', 'agent_request_start', 'agent_request_end', 'metric_event', 'agent_delegation', 'cost_event', 'agent_request_start', 'dlp_event', 'agent_request_end', 'metric_event', 'agent_request_start', 'agent_request_end', 'metric_event', 'cost_event']"
+    },
+    {
+      "name": "agent_delegation emitted",
+      "passed": true,
+      "details": "['agent_request_start', 'agent_request_end', 'metric_event', 'agent_delegation', 'cost_event', 'agent_request_start', 'agent_request_end', 'metric_event', 'agent_delegation', 'cost_event', 'agent_request_start', 'dlp_event', 'agent_request_end', 'metric_event', 'agent_request_start', 'agent_request_end', 'metric_event', 'cost_event']"
+    },
+    {
+      "name": "metric_event emitted",
+      "passed": true,
+      "details": "['agent_request_start', 'agent_request_end', 'metric_event', 'agent_delegation', 'cost_event', 'agent_request_start', 'agent_request_end', 'metric_event', 'agent_delegation', 'cost_event', 'agent_request_start', 'dlp_event', 'agent_request_end', 'metric_event', 'agent_request_start', 'agent_request_end', 'metric_event', 'cost_event']"
+    },
+    {
+      "name": "prompt fingerprint attributes present",
+      "passed": true,
+      "details": "start_events=4"
+    },
+    {
+      "name": "dlp info types populated",
+      "passed": true,
+      "details": "dlp_events=1"
+    },
+    {
+      "name": "session span attributes present",
+      "passed": true,
+      "details": "span_count=54"
+    },
+    {
+      "name": "delegation span present",
+      "passed": true,
+      "details": "search span name agent_delegation"
+    },
+    {
+      "name": "cost span present",
+      "passed": true,
+      "details": "search span name llm_cost"
+    },
+    {
+      "name": "cloud logging trace/span fields present",
+      "passed": true,
+      "details": "entries=54"
+    },
+    {
+      "name": "runtime metrics snapshot generated",
+      "passed": true,
+      "details": "{\"requests_total\": 4, \"errors_total\": 0, \"error_rate\": 0.0, \"request_p95_latency_ms\": 4, \"delegations_total\": 2, \"cost_usd_total\": 0.0, \"input_tokens_total\": 36, \"output_tokens_total\": 36, \"tool_analytics\": {}, \"delegation_edges\": [{\"source_agent\": \"orchestrator\", \"target_agent\": \"research_agent\", \"count\": 1}, {\"source_agent\": \"orchestrator\", \"target_agent\": \"validator_agent\", \"count\": 1}]}"
+    },
+    {
+      "name": "delegation edges tracked",
+      "passed": true,
+      "details": "[{'source_agent': 'orchestrator', 'target_agent': 'research_agent', 'count': 1}, {'source_agent': 'orchestrator', 'target_agent': 'validator_agent', 'count': 1}]"
+    },
+    {
+      "name": "dlp model_armor provider selectable",
+      "passed": true,
+      "details": "model_armor"
+    },
+    {
+      "name": "dlp provider differentiation",
+      "passed": true,
+      "details": "sdp=6 model_armor=4"
+    },
+    {
+      "name": "annotation export works",
+      "passed": true,
+      "details": "items=4"
+    },
+    {
+      "name": "trace capture by session works",
+      "passed": true,
+      "details": "items=1"
+    },
+    {
+      "name": "experiment comparison computes deltas",
+      "passed": true,
+      "details": "{\"task_completion\": 0.1}"
+    }
+  ],
+  "summary": {
+    "passed": 19,
+    "failed": 0,
+    "total": 19
+  }
+}

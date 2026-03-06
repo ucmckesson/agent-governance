@@ -91,6 +91,14 @@ telemetry:
     pricing:
       "gpt-4o": { input: 2.50, output: 10.00 }
     alert_threshold_usd: 1.0
+  metrics:
+    enabled: true
+
+dlp:
+  enabled: true
+  provider: sensitive_data_protection   # sensitive_data_protection | model_armor
+  action_on_input_pii: redact
+  action_on_output_pii: block
 
 guardrails:
   profile: strict   # strict | balanced | permissive | custom
@@ -265,6 +273,43 @@ await governance.record_delegation(
 ```
 
 This emits `agent_delegation` events and adds delegation attributes on spans.
+
+## 5b) Production-to-dataset and annotation loop
+
+Capture telemetry events into golden datasets:
+
+```python
+from agent_governance.golden_data import TraceCapture
+
+capture = TraceCapture(events_path="./artifacts/governance_events.jsonl")
+dataset = await capture.capture_from_session("session-123")
+```
+
+Store human annotations and export regression sets:
+
+```python
+from agent_governance.telemetry import Annotation, AnnotationClient, JsonlAnnotationStore
+
+client = AnnotationClient(JsonlAnnotationStore("./artifacts/annotations.jsonl"))
+await client.annotate(
+  Annotation(
+    trace_id="trace-abc",
+    label="incorrect",
+    note="hallucinated policy",
+    annotator="human:reviewer@company.com",
+  )
+)
+dataset = await client.export_annotated_traces("incorrect")
+```
+
+Compare baseline vs candidate eval experiments:
+
+```python
+from agent_governance.eval import Experiment, ExperimentComparison
+
+comparison = ExperimentComparison(baseline_experiment, candidate_experiment).compare()
+print(comparison.deltas)
+```
 
 ## 6) Shutdown handling (important)
 

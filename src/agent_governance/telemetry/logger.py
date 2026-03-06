@@ -98,6 +98,9 @@ class GovernanceLogger:
     def cost_event(self, agent, ctx: RequestContext, **details) -> None:
         self.emit_event(build_event(EventType.COST_EVENT, agent, ctx, details))
 
+    def dlp_event(self, agent, ctx: RequestContext, **details) -> None:
+        self.emit_event(build_event(EventType.DLP_EVENT, agent, ctx, details))
+
     def tool_call_end(
         self,
         agent,
@@ -139,6 +142,19 @@ class GovernanceLogger:
 
     def registration_event(self, agent, ctx: RequestContext, status: str, **details) -> None:
         self.emit_event(build_event(EventType.REGISTRATION_EVENT, agent, ctx, {"status": status, **details}))
+
+    def metric_event(self, agent, ctx: RequestContext, metric_name: str, value: Any, **details) -> None:
+        self.emit_event(
+            build_event(
+                EventType.METRIC_EVENT,
+                agent,
+                ctx,
+                {"metric_name": metric_name, "value": value, **details},
+            )
+        )
+
+    def annotation_event(self, agent, ctx: RequestContext, label: str, **details) -> None:
+        self.emit_event(build_event(EventType.ANNOTATION_EVENT, agent, ctx, {"label": label, **details}))
 
 
 def init_telemetry(config: Dict[str, Any]) -> GovernanceLogger:

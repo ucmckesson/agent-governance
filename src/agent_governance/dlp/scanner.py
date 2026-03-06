@@ -16,6 +16,13 @@ DEFAULT_PATTERNS = {
     "ADDRESS": re.compile(r"\b\d{1,5}\s+\w+(?:\s+\w+)*\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Lane|Ln|Dr|Drive|Ct|Court)\b", re.IGNORECASE),
 }
 
+MODEL_ARMOR_PATTERNS = {
+    "EMAIL_ADDRESS": DEFAULT_PATTERNS["EMAIL_ADDRESS"],
+    "PHONE_NUMBER": DEFAULT_PATTERNS["PHONE_NUMBER"],
+    "US_SSN": DEFAULT_PATTERNS["US_SSN"],
+    "CREDIT_CARD_NUMBER": DEFAULT_PATTERNS["CREDIT_CARD_NUMBER"],
+}
+
 INFO_TYPE_ALIASES = {
     "SSN": "US_SSN",
     "CREDIT_CARD": "CREDIT_CARD_NUMBER",
@@ -25,21 +32,31 @@ INFO_TYPE_ALIASES = {
 
 
 class DLPScanner:
-    def __init__(self, action: DLPAction = DLPAction.LOG_ONLY, info_types: Iterable[str] | None = None) -> None:
+    def __init__(
+        self,
+        action: DLPAction = DLPAction.LOG_ONLY,
+        info_types: Iterable[str] | None = None,
+        provider: str = "sensitive_data_protection",
+    ) -> None:
         self.action = action
-        self.info_types = list(info_types or DEFAULT_PATTERNS.keys())
+        self.provider = provider
+        patterns = MODEL_ARMOR_PATTERNS if provider == "model_armor" else DEFAULT_PATTERNS
+        self.info_types = list(info_types or patterns.keys())
 
     @classmethod
     def from_config(cls, config: Dict[str, object]) -> "DLPScanner":
         action = DLPAction(config.get("action_on_input_pii", "log"))
-        info_types = config.get("info_types") or list(DEFAULT_PATTERNS.keys())
-        return cls(action=action, info_types=info_types)
+        provider = str(config.get("provider", "sensitive_data_protection") or "sensitive_data_protection").lower()
+        patterns = MODEL_ARMOR_PATTERNS if provider == "model_armor" else DEFAULT_PATTERNS
+        info_types = config.get("info_types") or list(patterns.keys())
+        return cls(action=action, info_types=info_types, provider=provider)
 
     def scan_text(self, text: str) -> DLPScanResult:
         findings: List[DLPFinding] = []
+        patterns = MODEL_ARMOR_PATTERNS if self.provider == "model_armor" else DEFAULT_PATTERNS
         for info_type in self.info_types:
             normalized = INFO_TYPE_ALIASES.get(info_type, info_type)
-            pattern = DEFAULT_PATTERNS.get(normalized)
+            pattern = patterns.get(normalized)
             if not pattern:
                 continue
             for match in pattern.findall(text):

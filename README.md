@@ -38,6 +38,7 @@ This enables:
 - auto registration event emission
 - heartbeat lifecycle events
 - telemetry initialization (Cloud Logging auto-on in GCP)
+- runtime cost, delegation, and metrics aggregation events
 
 ## ADK integration
 
@@ -68,13 +69,17 @@ You can reference team-specific YAML files from governance.yaml:
 
 - `agent_governance.config` — configuration loader
 - `agent_governance.telemetry` — structured logging
+- `agent_governance.telemetry.annotations` — trace/span annotation workflow
+- `agent_governance.telemetry.metrics` — in-process runtime metric aggregation
 - `agent_governance.guardrails` — tool/input/output enforcement
 - `agent_governance.dlp` — PII scanning
 - `agent_governance.registry` — registry client
 - `agent_governance.eval` — eval harness
+- `agent_governance.eval.experiments` — baseline/candidate comparison helpers
 - `agent_governance.compliance` — compliance checks
 - `agent_governance.labels` — label validation
 - `agent_governance.golden_data` — golden dataset utilities
+- `agent_governance.golden_data.capture` — production telemetry capture into datasets
 
 ## Examples
 

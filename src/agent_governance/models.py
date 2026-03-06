@@ -73,6 +73,8 @@ class EventType(str, Enum):
     GUARDRAIL_EVENT = "guardrail_event"
     EVAL_EVENT = "eval_event"
     REGISTRATION_EVENT = "registration_event"
+    METRIC_EVENT = "metric_event"
+    ANNOTATION_EVENT = "annotation_event"
     ERROR_EVENT = "error_event"
 
 

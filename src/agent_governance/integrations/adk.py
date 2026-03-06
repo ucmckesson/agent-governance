@@ -12,6 +12,7 @@ from ..guardrails.engine import GuardrailsEngine
 from ..models import DLPAction, GuardrailAction, RequestContext
 from ..telemetry import GovernanceLogger, init_telemetry
 from ..telemetry.cost_tracker import CostTracker
+from ..telemetry.metrics import AgentMetricsTracker
 from ..telemetry.tracing import init_tracing
 from ..telemetry.spans import start_span
 
@@ -46,12 +47,14 @@ class GovernanceADKMiddleware:
         self._guardrails = GuardrailsEngine(guardrails_cfg, self._logger)
         dlp_cfg = config.section("dlp")
         self._dlp = DLPScanner.from_config(dlp_cfg) if dlp_cfg.get("enabled", True) else None
+        self._dlp_provider = dlp_cfg.get("provider", "sensitive_data_protection")
         self._active_spans = {}
         self._tool_spans = {}
         self._request_metrics: Dict[str, Dict[str, Any]] = {}
         self._session_turns: Dict[str, int] = {}
         telemetry_cfg = config.section("telemetry") or {}
         self._cost_tracker = CostTracker(telemetry_cfg.get("cost_tracking", {}))
+        self._metrics = AgentMetricsTracker(telemetry_cfg.get("metrics", {}))
         self._prompt_fingerprint: str | None = None
         self._prompt_length_chars: int | None = None
         self._emit_guardrails_status()
@@ -119,7 +122,17 @@ class GovernanceADKMiddleware:
 
         if self._dlp and self._config.section("dlp").get("scan_input", True):
             action = DLPAction(self._config.section("dlp").get("action_on_input_pii", "log"))
-            user_input, _ = self._dlp.scan_and_process(user_input, action)
+            user_input, scan = self._dlp.scan_and_process(user_input, action)
+            if scan.findings:
+                self._logger.dlp_event(
+                    agent_identity,
+                    ctx,
+                    stage="input",
+                    provider=self._dlp_provider,
+                    action=action.value,
+                    findings_count=len(scan.findings),
+                    info_types=sorted({finding.info_type for finding in scan.findings}),
+                )
 
         return user_input, ctx, start_time
 
@@ -145,6 +158,17 @@ class GovernanceADKMiddleware:
         if self._dlp and self._config.section("dlp").get("scan_tool_params", True):
             action = DLPAction(self._config.section("dlp").get("action_on_input_pii", "log"))
             _, scan = self._dlp.scan_and_process(str(tool_params), action)
+            if scan.findings:
+                self._logger.dlp_event(
+                    agent_identity,
+                    ctx,
+                    stage="tool_params",
+                    provider=self._dlp_provider,
+                    tool_name=tool_name,
+                    action=action.value,
+                    findings_count=len(scan.findings),
+                    info_types=sorted({finding.info_type for finding in scan.findings}),
+                )
             if action == DLPAction.BLOCK and scan.findings:
                 raise ToolBlockedError("Tool params blocked by DLP")
 
@@ -162,6 +186,7 @@ class GovernanceADKMiddleware:
     ) -> Any:
         self._guardrails.record_tool_result(tool_name, success)
         status = "success" if success else "error"
+        self._metrics.record_tool_call_end(tool_name, status, latency_ms)
         self._logger.tool_call_end(agent_identity, ctx, tool_name, status, latency_ms, error_message=error)
         for key, (tool_span_ctx, tool_span) in list(self._tool_spans.items()):
             if key.startswith(f"{ctx.request_id}:{tool_name}:"):
@@ -181,10 +206,21 @@ class GovernanceADKMiddleware:
         if self._dlp and self._config.section("dlp").get("scan_output", True):
             action = DLPAction(self._config.section("dlp").get("action_on_output_pii", "log"))
             output, scan = self._dlp.scan_and_process(output, action)
+            if scan.findings:
+                self._logger.dlp_event(
+                    agent_identity,
+                    ctx,
+                    stage="output",
+                    provider=self._dlp_provider,
+                    action=action.value,
+                    findings_count=len(scan.findings),
+                    info_types=sorted({finding.info_type for finding in scan.findings}),
+                )
             if action == DLPAction.BLOCK and scan.findings:
                 raise OutputBlockedError("Output blocked by DLP")
 
         latency_ms = int((time.monotonic() - start_time) * 1000)
+        self._metrics.record_request_end("success", latency_ms)
         request_cost_usd = self._cost_tracker.finalize_request(ctx.request_id) if self._cost_tracker.enabled else 0.0
         request_metrics = self._request_metrics.pop(ctx.request_id, {})
         self._logger.agent_request_end(
@@ -202,6 +238,15 @@ class GovernanceADKMiddleware:
             session_turn=int(request_metrics.get("session_turn", 0)),
             **self._prompt_attrs(),
         )
+        snapshot = self._metrics.snapshot()
+        if snapshot:
+            self._logger.metric_event(
+                agent_identity,
+                ctx,
+                metric_name="agent_runtime_snapshot",
+                value=snapshot.get("requests_total", 0),
+                snapshot=snapshot,
+            )
         if ctx.request_id in self._active_spans:
             span_ctx, span = self._active_spans.pop(ctx.request_id)
             span.set_attribute("latency_ms", latency_ms)
@@ -228,6 +273,7 @@ class GovernanceADKMiddleware:
 
         usage = self._cost_tracker.estimate(model, input_tokens, output_tokens)
         totals = self._cost_tracker.record(ctx.request_id, ctx.session_id, usage)
+        self._metrics.record_cost(usage.estimated_usd, usage.input_tokens, usage.output_tokens)
         metrics = self._request_metrics.get(ctx.request_id)
         if metrics is not None:
             metrics["llm_calls"] = int(metrics.get("llm_calls", 0)) + 1
@@ -250,9 +296,9 @@ class GovernanceADKMiddleware:
             "llm_cost",
             {
                 "governance.cost.model": usage.model,
-                "governance.cost.input_tokens": str(usage.input_tokens),
-                "governance.cost.output_tokens": str(usage.output_tokens),
-                "governance.cost.estimated_usd": str(usage.estimated_usd),
+                "governance.cost.input_tokens": usage.input_tokens,
+                "governance.cost.output_tokens": usage.output_tokens,
+                "governance.cost.estimated_usd": usage.estimated_usd,
                 **self._session_span_attrs(ctx),
             },
         ):
@@ -310,6 +356,7 @@ class GovernanceADKMiddleware:
             attrs["governance.delegation.chain"] = chain_str
         with start_span("agent_delegation", attrs):
             pass
+        self._metrics.record_delegation(source_agent, target_agent)
         metrics = self._request_metrics.get(ctx.request_id)
         if metrics is not None:
             metrics["delegation_hops"] = int(metrics.get("delegation_hops", 0)) + 1
@@ -358,8 +405,10 @@ class GovernanceADKMiddleware:
         attrs: Dict[str, Any] = {}
         if self._prompt_fingerprint:
             attrs["prompt_fingerprint"] = self._prompt_fingerprint
+            attrs["governance.prompt.fingerprint"] = self._prompt_fingerprint
         if self._prompt_length_chars is not None:
             attrs["prompt_length_chars"] = self._prompt_length_chars
+            attrs["governance.prompt.length_chars"] = self._prompt_length_chars
         return attrs
 
     def _record_turn(self, ctx: RequestContext) -> int:
