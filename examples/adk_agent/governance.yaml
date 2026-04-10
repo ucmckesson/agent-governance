@@ -12,3 +12,26 @@ telemetry:
 guardrails:
   policy_file: "guardrails.yaml"
   model_schema_file: "model_schema.yaml"
+registry:
+  # BigQuery sink — SDK writes registration records here automatically on startup
+  bq_project: example-project
+  bq_dataset: agent_registry
+  bq_table: agent_registration
+  # Team registration metadata — fill in per agent
+  owner: "team-alias@company.com"
+  team: "platform-ai"
+  cost_center: "ENG-42"
+  risk_tier: medium          # low | medium | high | critical
+  data_classification: internal  # public | internal | confidential | restricted
+  tools:
+    - search_internal_kb
+    - get_customer_record
+  datasources:
+    - "bq:example-project.crm.customers"
+  write_tools:
+    - update_customer_record
+  # Optional: arbitrary key/value pairs stored alongside the registration record
+  custom_metadata:
+    squad: "agent-platform"
+    jira_project: "AGOV"
+    oncall_rotation: "pd:team-ai-oncall"

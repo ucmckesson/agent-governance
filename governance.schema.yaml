@@ -134,6 +134,33 @@ properties:
       bq_project: { type: string }
       bq_dataset: { type: string }
       bq_table: { type: string }
+      heartbeat_interval_s: { type: integer, minimum: 10, default: 60 }
+      # --- Team registration metadata (set per agent repo) ---
+      owner: { type: string, description: "Owner email or team alias" }
+      team: { type: string, description: "Team or group name" }
+      cost_center: { type: string }
+      risk_tier:
+        type: string
+        enum: [low, medium, high, critical]
+      data_classification:
+        type: string
+        enum: [public, internal, confidential, restricted]
+      tools:
+        type: array
+        items: { type: string }
+        description: "Tool names this agent uses (for registry catalog)"
+      datasources:
+        type: array
+        items: { type: string }
+        description: "Data sources this agent reads (e.g. bq:project.dataset.table)"
+      write_tools:
+        type: array
+        items: { type: string }
+        description: "Subset of tools that perform writes (used for risk assessment)"
+      custom_metadata:
+        type: object
+        additionalProperties: true
+        description: "Arbitrary key/value pairs for team-specific registration data"
       registration_schema:
         type: array
         items:

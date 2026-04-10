@@ -69,6 +69,9 @@ class AgentLifecycleManager:
         if not (project and dataset and table):
             return
 
+        # Merge team-supplied custom_metadata (arbitrary extra fields)
+        custom_metadata = self._cfg.get("custom_metadata") or {}
+
         record = AgentRegistrationRecord(
             agent_id=self._agent.agent_id,
             env=self._agent.env.value if hasattr(self._agent.env, "value") else str(self._agent.env),
@@ -78,9 +81,18 @@ class AgentLifecycleManager:
             cloud_run_url=self._runtime.service_url,
             revision=self._runtime.revision,
             version=self._agent.version,
+            # Team registration metadata from governance.yaml → registry section
             owner=self._cfg.get("owner"),
+            team=self._cfg.get("team"),
+            cost_center=self._cfg.get("cost_center"),
+            risk_tier=self._cfg.get("risk_tier"),
+            data_classification=self._cfg.get("data_classification"),
+            tools=self._cfg.get("tools") or [],
+            datasources=self._cfg.get("datasources") or [],
+            write_tools=self._cfg.get("write_tools") or [],
             status=status,
             last_deploy_times=[datetime.now(timezone.utc)],
+            **custom_metadata,
         )
         try:
             write_registration(record, project=project, dataset=dataset, table=table)
